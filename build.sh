@@ -4,6 +4,6 @@
 # TODO: build cglm libraries instead of just including the header in the repo
 mkdir -p build;
 gcc -c external/include/glad/glad.c -Iexternal/include -o build/glad.o
-gcc -Wall -Wextra -ggdb -Isrc/render_base src/*.c src/render_base/*.c -Iexternal/include -Iexternal/cglm/include -Lbuild -l:glad.o -lglfw -lGL -lm -o build/program
+gcc -Wall -Wextra -ggdb -Isrc/render_base -Isrc/engine src/*.c src/render_base/*.c src/engine/*.c -Iexternal/include -Iexternal/cglm/include -Lbuild -l:glad.o -lglfw -lGL -lm -o build/program
 
 # maybe use `pkg-config --static --libs glfw3` instead?

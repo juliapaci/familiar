@@ -70,7 +70,6 @@ unsigned int shader_make(const char *vertex_path, const char *fragment_path) {
     glLinkProgram(program);
     _error_check_program(program);
 
-
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 

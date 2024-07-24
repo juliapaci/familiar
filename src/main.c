@@ -1,33 +1,27 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <cglm/cglm.h>
-
+#include <general.h>
 #include <shader.h>
 #include <camera.h>
-#include <general.h>
-
-#include <stdio.h>
-#include <stdbool.h>
-
-float last_frame = 0.0f;
+#include <raycaster.h>
 
 int main(void) {
-    GLFWwindow *window = init_window();
+    GLFWwindow *window = init_window("Familiar");
     if(window == NULL) return 1;
-    unsigned int shader_program = shader_make("src/render_base/shader.vs", "src/render-base/shader.fs");
+    unsigned int shader_program = shader_make("src/render_base/shader.vs", "src/render_base/shader.fs");
     bool wireframe = false;
-    Camera camera = init_camera();
+
+    Player player;
 
     while(!glfwWindowShouldClose(window)) {
-        float current_frame = glfwGetTime();
-        delta_time = current_frame - last_frame;
-        last_frame = current_frame;
-
-        process_general_input(window, &wireframe);
+        update_delta_time();
 
         glClearColor(0.1, 0.1, 0.1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        process_general_input(window, &wireframe);
+        raycast(&player);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

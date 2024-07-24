@@ -5,11 +5,13 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-// temporary fix
+// temporary solution
 extern float delta_time;
+extern float last_frame;
+void update_delta_time(void);
 
 // NULL if error
-GLFWwindow *init_window(void);
+GLFWwindow *init_window(const char *name);
 
 void _framebuffer_size_callback(GLFWwindow *window, int width, int height);
 inline void set_framebuffer_size_callback(GLFWwindow *window) {

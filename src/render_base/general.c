@@ -3,14 +3,21 @@
 #include <stdio.h>
 
 float delta_time = 1.0;
+float last_frame = 0.0f;
 
-GLFWwindow *init_window(void) {
+void update_delta_time(void) {
+    float current_frame = glfwGetTime();
+    delta_time = current_frame - last_frame;
+    last_frame = current_frame;
+}
+
+GLFWwindow *init_window(const char *name) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(800, 600, "familiar", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(800, 600, name, NULL, NULL);
     if(window == NULL) {
         fprintf(stderr, "failed to create glfw window\n");
         glfwTerminate();
