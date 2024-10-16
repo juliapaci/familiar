@@ -3,10 +3,14 @@
 #include <string.h>
 
 #define BUILD "build"
+#define ENGINE "engine"
+#define THIRD_PARTY "external"
+#define SRC "src"
+
 #define CFLAGS "-Wall", "-Wextra", "-ggdb"
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-Lbuild", "-Iexternal/include", "-Iexternal/cglm/include", "-Isrc/render_base", "-Isrc/engine", "-l:glad.o", "-lglfw", "-lGL", "-lm"
+#define LDFLAGS "-Lbuild", "-Iexternal/include", "-Iexternal/cglm/include", "-Isrc/engine", "-l:glad.o", "-lglfw", "-lGL", "-lm", "-lengine"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -28,20 +32,29 @@ Cstr all_c_files_in_dir(const char *dir_path) {
     return files;
 }
 
-void build_deps(void) {
-    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH("external", "include", "glad", "glad.c"));
-    // TODO: make render_base here aswell and statically link
+void build_dep_glad(void) {
+    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "include", "glad", "glad.c"));
+}
+
+void build_dep_engine(void) {
+    const Cstr general = PATH(BUILD, "general.o");
+    const Cstr shader = PATH(BUILD, "shader.o");
+    const Cstr camera = PATH(BUILD, "camera.o");
+
+    CMD("cc", CFLAGS, "-c", "-o", general, PATH(SRC, ENGINE, "general.c"), LDFLAGS);
+    CMD("cc", CFLAGS, "-c", "-o", shader, PATH(SRC, ENGINE, "shader.c"), LDFLAGS);
+    CMD("cc", CFLAGS, "-c", "-o", camera, PATH(SRC, ENGINE, "camera.c"), LDFLAGS);
+
+    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera);
+}
+
+void build_dependencies(void) {
+    INFO("building glad"); build_dep_glad();
+    INFO("building engine"); build_dep_engine();
 }
 
 void build_familiar(void) {
-    CMD("cc", "-o", PATH(BUILD, "familiar"), CFLAGS, LDFLAGS,
-        PATH("src", "main.c"),
-        PATH("src", "render_base", "general.c"),
-        PATH("src", "render_base", "shader.c"),
-        PATH("src", "render_base", "camera.c"),
-        PATH("src", "engine", "raycaster.c")
-        /* all_c_files_in_dir("src"), all_c_files_in_dir(PATH("src", "render_base")), all_c_files_in_dir(PATH("src", "engine")) */
-    );
+    CMD("cc", CFLAGS, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
 }
 
 // NOTE: very bare bones just so clangd can pick up on stuff
@@ -66,7 +79,7 @@ void create_compile_commands(void) {
         "["                                     "\n"
         "\t"    "{"                             "\n"
         "\t\t"      "\"directory\": \"%s\","    "\n"
-        // stupid formatting but works cause order of appending LDFLAGS_DELIM
+        // stupid formatting but works cause order of appending `LDFLAGS_DELIM`
         "\t\t"      "\"arguments\": [\"/usr/bin/cc%s\"],"   "\n"
         "\t\t"      "\"file\": \"N/A\""         "\n"
         "\t"    "}"                             "\n"
@@ -82,11 +95,14 @@ void create_compile_commands(void) {
 int main(int argc, char **argv) {
     GO_REBUILD_URSELF(argc, argv);
 
-    all_c_files_in_dir("src/render_base");
+    // all_c_files_in_dir("src/render_base");
     CMD("mkdir", "-p", BUILD);
-    INFO("building dependencies"); build_deps();
+    INFO("building dependencies"); build_dependencies();
     INFO("building familiar"); build_familiar();
     INFO("creating \"compile_commands.json\""); create_compile_commands();
+
+    if(argc >= 2 && strcmp(argv[1], "run") == 0)
+        CMD(PATH(BUILD, "familiar"));
 
     return 0;
 }

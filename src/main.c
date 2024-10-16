@@ -4,15 +4,12 @@
 #include <general.h>
 #include <shader.h>
 #include <camera.h>
-#include <raycaster.h>
 
 int main(void) {
     GLFWwindow *window = init_window("Familiar");
     if(window == NULL) return 1;
-    unsigned int shader_program = shader_make("src/render_base/shader.vs", "src/render_base/shader.fs");
+    unsigned int shader_program = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
     bool wireframe = false;
-
-    Player player;
 
     while(!glfwWindowShouldClose(window)) {
         update_delta_time();
@@ -21,12 +18,12 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         process_general_input(window, &wireframe);
-        raycast(&player);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    // glDetachShader(shader_program, shader_program);
     glDeleteProgram(shader_program);
     glfwTerminate();
     return 0;
