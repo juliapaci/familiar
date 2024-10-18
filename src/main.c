@@ -8,7 +8,6 @@
 int main(void) {
     GLFWwindow *window = init_window("Familiar");
     if(window == NULL) return 1;
-    unsigned int shader_program = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
     bool wireframe = false;
 
     while(!glfwWindowShouldClose(window)) {
@@ -23,8 +22,6 @@ int main(void) {
         glfwPollEvents();
     }
 
-    // glDetachShader(shader_program, shader_program);
-    glDeleteProgram(shader_program);
     glfwTerminate();
     return 0;
 }

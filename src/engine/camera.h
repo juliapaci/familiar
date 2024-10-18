@@ -1,7 +1,6 @@
 #ifndef __CAMERA_H__
 #define __CAMERA_H__
 
-#include <general.h>
 #include <GLFW/glfw3.h>
 #include <cglm/types.h>
 
@@ -24,7 +23,7 @@ typedef struct {
 extern const vec3 up_unit;
 extern const float camera_speed;
 extern const Camera CAMERA_DEFAULT;
-Camera init_camera(void);
+Camera camera_init(void);
 
 // updates camera shader values and stuff
 void camera_update(Camera *camera, unsigned int shader);

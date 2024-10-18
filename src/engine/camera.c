@@ -1,6 +1,7 @@
-#include "camera.h"
-
+#include <general.h>
 #include <cglm/cglm.h>
+
+#include "camera.h"
 
 const vec3 up_unit = {0.0f, 1.0f, 0.0f};
 const float camera_speed = 2.5f;
@@ -19,7 +20,7 @@ const Camera CAMERA_DEFAULT = {
     .last_y = 0.0f,
 };
 
-Camera init_camera(void) {
+Camera camera_init(void) {
     Camera camera = CAMERA_DEFAULT;
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);

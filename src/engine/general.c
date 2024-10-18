@@ -1,4 +1,6 @@
 #include "general.h"
+#include <camera.h>
+#include <shader.h>
 
 #include <stdio.h>
 
@@ -47,4 +49,38 @@ void process_general_input(GLFWwindow *window, bool *wireframe) {
         *wireframe = !*wireframe;
         glPolygonMode(GL_FRONT_AND_BACK, *wireframe ? GL_LINE : GL_FILL);
     }
+}
+
+void render_init(Renderer *r) {
+    glGenVertexArrays(1, &r->vao);
+    glBindVertexArray(r->vao);
+
+    glGenBuffers(1, &r->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
+
+    r->shader = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
+
+    r->camera = camera_init();
+    camera_update(&r->camera, r->shader);
+}
+
+void render_free(Renderer *r) {
+    glDeleteBuffers(1, &r->vbo);
+    glDeleteVertexArrays(1, &r->vao);
+    glDeleteProgram(r->shader);
+}
+
+void render_frame_start(Renderer *r) {
+    r->triangle_count = 0;
+}
+
+void render_frame_end(Renderer *r) {
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
+
+    glUseProgram(r->shader);
+
+    glBindVertexArray(r->vao);
+    glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
 }
