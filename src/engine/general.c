@@ -3,6 +3,7 @@
 #include <shader.h>
 
 #include <stdio.h>
+#include <limits.h>
 
 float delta_time = 1.0;
 float last_frame = 0.0f;
@@ -59,10 +60,21 @@ void render_init(Renderer *r) {
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
 
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, texture));
+    glEnableVertexAttribArray(3);
+
     r->shader = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
 
     r->camera = camera_init();
     camera_update(&r->camera, r->shader);
+
+    GLuint tex_loc = glGetUniformLocation(r->shader, "u_tex");
+    GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    glUniform1iv(tex_loc, 8, textures);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void render_free(Renderer *r) {
@@ -71,8 +83,11 @@ void render_free(Renderer *r) {
     glDeleteProgram(r->shader);
 }
 
-void render_frame_start(Renderer *r) {
+void render_frame_begin(Renderer *r) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     r->triangle_count = 0;
+    r->texture_count = 0;
 }
 
 void render_frame_end(Renderer *r) {
@@ -83,4 +98,36 @@ void render_frame_end(Renderer *r) {
 
     glBindVertexArray(r->vao);
     glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
+
+    for(GLuint i = 0; i < r->texture_count; i++) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_3D, r->textures[i]);
+    }
+}
+
+void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
+    // UINT32_MAX is error value
+    GLuint texture = UINT32_MAX;
+    for(GLuint i = 0; i < r->texture_count; i++) {
+        if(r->textures[i] == a.texture) {
+            texture = i;
+            break;
+        }
+    }
+
+    if(texture == UINT32_MAX && r->texture_count < 8) {
+        r->textures[r->texture_count] = a.texture;
+        texture = r->texture_count++;
+    }
+
+    if(r->triangle_count == MAX_TRIANGLES || texture == UINT32_MAX) {
+        render_frame_end(r);
+        render_frame_begin(r);
+    }
+
+    texture = c.texture = b.texture = a.texture;
+    const size_t offset = r->triangle_count++ * 3;
+    r->triangle_data[offset + 0] = a;
+    r->triangle_data[offset + 1] = b;
+    r->triangle_data[offset + 2] = c;
 }
