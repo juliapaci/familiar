@@ -21,6 +21,7 @@ GLFWwindow *init_window(const char *name) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow *window = glfwCreateWindow(800, 600, name, NULL, NULL);
+    set_framebuffer_size_callback(window);
     if(window == NULL) {
         fprintf(stderr, "failed to create glfw window\n");
         glfwTerminate();
@@ -72,6 +73,7 @@ void render_init(Renderer *r) {
     glEnableVertexAttribArray(3);
 
     r->shader = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
+    glUseProgram(r->shader);
 
     r->camera = camera_init();
     camera_update(&r->camera, r->shader);

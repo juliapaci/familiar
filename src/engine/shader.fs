@@ -10,8 +10,9 @@ in float v_texture;
 uniform sampler2D u_tex[8];
 
 void main() {
-   // frag_colour = v_colour * texture(u_tex[int(v_texture)], v_uv);
-   frag_colour = vec4(1);
+    frag_colour = v_colour * texture(u_tex[int(v_texture)], v_uv);
+
+    // some gpus dont allow variable indexing?
     // switch (int(v_texture)) {
     //     case 0: frag_colour = v_colour * texture(u_tex[0], v_uv); break;
     //     case 1: frag_colour = v_colour * texture(u_tex[1], v_uv); break;

@@ -17,6 +17,7 @@ int main(void) {
     while(!glfwWindowShouldClose(window)) {
         glClearColor(0.1, 0.1, 0.1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         update_delta_time();
         render_frame_begin(&renderer);
         camera_update(&renderer.camera, renderer.shader);
@@ -26,13 +27,13 @@ int main(void) {
 
         render_push_triangle(&renderer,
             (RenderVertex){
-                .pos = {-100, -100, -100},
+                .pos = {0, 0, 0},
                 .colour = {1, 1, 1, 1},
                 .uv = {0, 0},
                 .texture = render_get_white_texture()
             },
             (RenderVertex){
-                .pos = {10, 100, 0},
+                .pos = {10, 0, 0},
                 .colour = {1, 1, 1, 1},
                 .uv = {1, 0},
             },
@@ -42,11 +43,10 @@ int main(void) {
                 .uv = {1, 1},
             }
         );
+        render_frame_end(&renderer);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        render_frame_end(&renderer);
     }
 
     render_free(&renderer);
