@@ -127,3 +127,4 @@ void _scroll_callback(GLFWwindow *window, double x_off, double y_off) {
     else if(camera->fov > 180.0f)
         camera->fov = 180.0f;
 }
+extern void set_cam_callback(GLFWwindow *window, Camera *camera);

@@ -62,4 +62,6 @@ void render_frame_end(Renderer *renderer);
 // Note: texture id is found in `a`
 void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, RenderVertex c);
 
+GLuint render_get_white_texture(void);
+
 #endif // __GENERAL_H__

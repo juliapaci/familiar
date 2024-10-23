@@ -42,6 +42,7 @@ GLFWwindow *init_window(const char *name) {
 void _framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
+extern void set_framebuffer_size_callback(GLFWwindow *window);
 
 void process_general_input(GLFWwindow *window, bool *wireframe) {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -59,6 +60,11 @@ void render_init(Renderer *r) {
     glGenBuffers(1, &r->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, pos));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, colour));
+    glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
     glEnableVertexAttribArray(2);
@@ -91,18 +97,17 @@ void render_frame_begin(Renderer *r) {
 }
 
 void render_frame_end(Renderer *r) {
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
-
-    glUseProgram(r->shader);
-
-    glBindVertexArray(r->vao);
-    glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
-
     for(GLuint i = 0; i < r->texture_count; i++) {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_3D, r->textures[i]);
     }
+
+    glUseProgram(r->shader);
+    glBindVertexArray(r->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
+
+    glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
 }
 
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
@@ -130,4 +135,23 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
     r->triangle_data[offset + 0] = a;
     r->triangle_data[offset + 1] = b;
     r->triangle_data[offset + 2] = c;
+}
+
+GLuint _white_texture = UINT32_MAX;
+
+GLuint render_get_white_texture(void) {
+	if (_white_texture == UINT32_MAX) {
+		GLuint texture;
+		uint8_t image[4] = { 255, 255, 255, 255 };
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		_white_texture = texture;
+	}
+
+	return _white_texture;
 }
