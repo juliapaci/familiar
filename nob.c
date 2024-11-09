@@ -1,6 +1,12 @@
 #define NOBUILD_IMPLEMENTATION
 #include "nob.h"
 
+// TODO: maybe make debugging an argument
+#define DEBUG 1
+#define STRINGIFY(x) XSTRINGIFY(x)
+#define XSTRINGIFY(x) #x
+#define OPENGL_DEBUG_APP "-D" "OPENGL_DEBUG_APP" "=" STRINGIFY(DEBUG)
+
 #define BUILD "build"
 #define ENGINE "engine"
 #define IMPLEMENTATION "implementations"
@@ -42,7 +48,7 @@ void build_dep_stb(void) {
 
 #define ENGINE_BUILD(translation_unit) \
     const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
-    CMD("cc", CFLAGS, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
+    CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
 void build_dep_engine() {
     // TODO: simplify further
@@ -61,7 +67,7 @@ void build_dependencies(void) {
 }
 
 void build_familiar(void) {
-    CMD("cc", CFLAGS, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
+    CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
 }
 
 // NOTE: very bare bones just so clangd can pick up on stuff

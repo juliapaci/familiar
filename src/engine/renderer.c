@@ -107,7 +107,7 @@ GLuint render_get_white_texture(void) {
 	return _white_texture;
 }
 
-GLuint render_texture_load(const char *path) {
+GLuint render_texture_load_file(const char *path) {
     stbi_set_flip_vertically_on_load(true);
     int32_t width, height, channels;
     uint8_t *data = stbi_load(path, &width, &height, &channels, 0);
@@ -131,25 +131,14 @@ void render_texture_free(GLuint texture) {
     glDeleteTextures(1, &texture);
 }
 
-void render_font_load(RenderFont *font, const char *path, float size) {
-    FILE *ttf = fopen(path, "rb");
-    if(ttf == NULL)
-        return;
-
-    fseek(ttf, 0, SEEK_END);
-    size_t length = ftell(ttf);
-    rewind(ttf);
-    uint8_t data[length * sizeof(uint8_t)];
-    fread(data, length, 1, ttf);
-    fclose(ttf);
-
+void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size) {
     uint8_t tmp_bitmap[512 * 512];
     stbtt_fontinfo info;
     stbtt_pack_context spc;
     stbtt_InitFont(&info, data, 0);
     stbtt_PackBegin(&spc, tmp_bitmap, 512, 512, 0, 1, 0);
     stbtt_PackSetOversampling(&spc, 1, 1);
-    stbtt_PackFontRange(&spc, data, 0, size, 32, 95, font->cdata);
+    stbtt_PackFontRange(&spc, data, 0, font_size, 32, 95, font->cdata);
     stbtt_PackEnd(&spc);
 
     glGenTextures(1, &font->texture);
@@ -162,10 +151,25 @@ void render_font_load(RenderFont *font, const char *path, float size) {
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzles);
     glTexImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 512, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
 
-    font->scale = stbtt_ScaleForPixelHeight(&info, size);
+    font->scale = stbtt_ScaleForPixelHeight(&info, font_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, NULL);
     font->baseline = (font->ascent * font->scale);
-    font->size = size;
+    font->size = font_size;
+}
+
+void render_font_load_file(RenderFont *font, const char *path, float size) {
+    FILE *ttf = fopen(path, "rb");
+    if(ttf == NULL)
+        return;
+
+    fseek(ttf, 0, SEEK_END);
+    size_t length = ftell(ttf);
+    rewind(ttf);
+    uint8_t data[length * sizeof(uint8_t)];
+    fread(data, length, 1, ttf);
+    fclose(ttf);
+
+    render_font_load(font, data, length, size);
 }
 
 void render_font_free(RenderFont *font) {

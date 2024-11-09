@@ -56,10 +56,12 @@ void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, Re
 
 GLuint render_get_white_texture(void);
 
-GLuint render_texture_load(const char *path);
+GLuint render_texture_load(const uint8_t data, size_t width, size_t height);
+GLuint render_texture_load_file(const char *path);
 void render_texture_free(GLuint texture);
 
-void render_font_load(RenderFont *font, const char *path, float size);
+void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size);
+void render_font_load_file(RenderFont *font, const char *path, float size);
 void render_font_free(RenderFont *font);
 
 #endif // __RENDERER_H__
