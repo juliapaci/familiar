@@ -1,16 +1,16 @@
 #define NOBUILD_IMPLEMENTATION
 #include "nob.h"
-#include <string.h>
 
 #define BUILD "build"
 #define ENGINE "engine"
+#define IMPLEMENTATION "implementations"
 #define THIRD_PARTY "external"
 #define SRC "src"
 
 #define CFLAGS "-Wall", "-Wextra", "-ggdb"
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-Lbuild", "-Iexternal/include", "-Iexternal/cglm/include", "-Isrc/engine", "-l:glad.o", "-lglfw", "-lGL", "-lm", "-lengine"
+#define LDFLAGS "-Lbuild", "-Iexternal", "-Iexternal/include", "-Iexternal/cglm/include", "-Isrc", "-l:glad.o", "-lglfw", "-lGL", "-lm", "-lengine", "-l:stb.o"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -36,20 +36,27 @@ void build_dep_glad(void) {
     CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "include", "glad", "glad.c"));
 }
 
-void build_dep_engine(void) {
-    const Cstr general = PATH(BUILD, "general.o");
-    const Cstr shader = PATH(BUILD, "shader.o");
-    const Cstr camera = PATH(BUILD, "camera.o");
+void build_dep_stb(void) {
+    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "stb.o"), PATH(SRC, ENGINE, IMPLEMENTATION, "stb.c"));
+}
 
-    CMD("cc", CFLAGS, "-c", "-o", general, PATH(SRC, ENGINE, "general.c"), LDFLAGS);
-    CMD("cc", CFLAGS, "-c", "-o", shader, PATH(SRC, ENGINE, "shader.c"), LDFLAGS);
-    CMD("cc", CFLAGS, "-c", "-o", camera, PATH(SRC, ENGINE, "camera.c"), LDFLAGS);
+#define ENGINE_BUILD(translation_unit) \
+    const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
+    CMD("cc", CFLAGS, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
-    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera);
+void build_dep_engine() {
+    // TODO: simplify further
+    ENGINE_BUILD(general);
+    ENGINE_BUILD(shader);
+    ENGINE_BUILD(camera);
+    ENGINE_BUILD(renderer);
+
+    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer);
 }
 
 void build_dependencies(void) {
     INFO("building glad"); build_dep_glad();
+    INFO("building stb"); build_dep_stb();
     INFO("building engine"); build_dep_engine();
 }
 
@@ -59,7 +66,6 @@ void build_familiar(void) {
 
 // NOTE: very bare bones just so clangd can pick up on stuff
 void create_compile_commands(void) {
-    CMD("touch", "compile_commands.json");
     FILE *json = fopen("compile_commands.json", "w");
 
     const char *ldflags_array[] = {LDFLAGS};
@@ -95,11 +101,10 @@ void create_compile_commands(void) {
 int main(int argc, char **argv) {
     GO_REBUILD_URSELF(argc, argv);
 
-    // all_c_files_in_dir("src/render_base");
+    INFO("creating \"compile_commands.json\""); create_compile_commands();
     CMD("mkdir", "-p", BUILD);
     INFO("building dependencies"); build_dependencies();
     INFO("building familiar"); build_familiar();
-    INFO("creating \"compile_commands.json\""); create_compile_commands();
 
     if(argc >= 2 && strcmp(argv[1], "run") == 0)
         CMD(PATH(BUILD, "familiar"));

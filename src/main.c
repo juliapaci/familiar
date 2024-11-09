@@ -1,12 +1,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <general.h>
-#include <shader.h>
-#include <camera.h>
+#include <engine/general.h>
+#include <engine/shader.h>
+#include <engine/camera.h>
+#include <engine/renderer.h>
 
 int main(void) {
     GLFWwindow *window = init_window("Familiar");
+    glEnable(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     if(window == NULL) return 1;
     bool wireframe = false;
@@ -16,7 +18,7 @@ int main(void) {
 
     while(!glfwWindowShouldClose(window)) {
         glClearColor(0.1, 0.1, 0.1, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         update_delta_time();
         render_frame_begin(&renderer);
