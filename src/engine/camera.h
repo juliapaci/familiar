@@ -2,12 +2,12 @@
 #define __CAMERA_H__
 
 #include <GLFW/glfw3.h>
-#include <cglm/types.h>
+#include <cglm/struct.h>
 
 typedef struct {
-    vec3 position;
-    vec3 target;
-    vec3 front;
+    vec3s position;
+    vec3s target;
+    vec3s front;
 
     float yaw;
     float pitch;
@@ -20,7 +20,7 @@ typedef struct {
     float last_y;
 } Camera;
 
-extern const vec3 up_unit;
+extern const vec3s up_unit;
 extern const float camera_speed;
 extern const Camera CAMERA_DEFAULT;
 Camera camera_init(void);

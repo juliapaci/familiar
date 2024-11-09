@@ -1,7 +1,7 @@
 #ifndef __RENDERER_H__
 #define __RENDERER_H__
 
-#include <cglm/cglm.h>
+#include <cglm/struct.h>
 #include <glad/glad.h>
 #include <engine/camera.h>
 #include <stb/stb_truetype.h>
@@ -10,10 +10,10 @@
 #define MAX_VERTICES    MAX_TRIANGLES * 3
 
 typedef struct {
-    vec3 pos;
-    vec4 colour;
+    vec3s pos;
+    vec4s colour;
 
-    vec2 uv;
+    vec2s uv;
     GLuint texture;
 } RenderVertex;
 
@@ -56,7 +56,7 @@ void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, Re
 
 GLuint render_get_white_texture(void);
 
-GLuint render_texure_load(const char *path);
+GLuint render_texture_load(const char *path);
 void render_texture_free(GLuint texture);
 
 void render_font_load(RenderFont *font, const char *path, float size);

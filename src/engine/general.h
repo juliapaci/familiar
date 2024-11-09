@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
-#include <cglm/cglm.h>
+#include <cglm/struct.h>
 #include <engine/camera.h>
 
 // TODO: siwtch to global arena allocator

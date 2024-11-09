@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-float delta_time = 1.0;
+float delta_time = 1.0f;
 float last_frame = 0.0f;
 
 void update_delta_time(void) {

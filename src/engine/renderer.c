@@ -46,11 +46,10 @@ void render_frame_begin(Renderer *r) {
     r->triangle_count = 0;
     r->texture_count = 0;
 }
-
 void render_frame_end(Renderer *r) {
     for(GLuint i = 0; i < r->texture_count; i++) {
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_3D, r->textures[i]);
+        glBindTexture(GL_TEXTURE_2D, r->textures[i]);
     }
 
     glUseProgram(r->shader);
@@ -95,14 +94,14 @@ GLuint render_get_white_texture(void) {
         return _white_texture;
 
 	GLuint texture;
-	uint8_t image[4] = { 255, 255, 255, 255 };
+	uint8_t image[4] = {255, 255, 255, 255};
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA8, GL_UNSIGNED_BYTE, image);
     _white_texture = texture;
 
 	return _white_texture;
@@ -120,7 +119,8 @@ GLuint render_texture_load(const char *path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, channels, GL_RGB8 + (GL_RGBA8 - GL_RGB8)*(channels == 4), width, height, 0, GL_UNSIGNED_BYTE, data);
+    GLint format = GL_RGB8 + (GL_RGBA8 - GL_RGB8)*(channels == 4);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
