@@ -1,11 +1,13 @@
 #define NOBUILD_IMPLEMENTATION
 #include "nob.h"
 
-// TODO: maybe make debugging an argument
-#define DEBUG 1
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
-#define OPENGL_DEBUG_APP "-D" "OPENGL_DEBUG_APP" "=" STRINGIFY(DEBUG)
+
+// TODO: maybe make debugging an argument
+#define DEBUG 1
+#define DEFINE_MACRO(name) "-D" #name "=" STRINGIFY(DEBUG)
+#define OPENGL_DEBUG_APP DEFINE_MACRO(OPENGL_DEBUG_APP)
 
 #define BUILD "build"
 #define ENGINE "engine"

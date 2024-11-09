@@ -56,10 +56,11 @@ int main(void) {
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 #if OPENGL_DEBUG_APP == 1
     glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(debug_log_callback, NULL);
 #endif // OPENGL_DEBUG_APP
 
-    glEnable(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
     if(window == NULL) return 1;
     bool wireframe = false;

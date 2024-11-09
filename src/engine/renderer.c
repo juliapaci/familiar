@@ -2,6 +2,9 @@
 
 #include <engine/shader.h>
 #include <stb/stb_image.h>
+#include <string.h>
+
+// TODO: batch renderer once performance becomes an issue
 
 void render_init(Renderer *r) {
     glGenVertexArrays(1, &r->vao);
@@ -118,8 +121,8 @@ GLuint render_texture_load_file(const char *path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    GLint format = GL_RGB8 + (GL_RGBA8 - GL_RGB8)*(channels == 4);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLint format = GL_RGB + (GL_RGBA - GL_RGB)*(channels == 4);
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
