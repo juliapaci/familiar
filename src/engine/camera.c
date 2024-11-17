@@ -6,8 +6,7 @@ const vec3s up_unit = {0.0f, 1.0f, 0.0f};
 const float camera_speed = 2.5f;
 
 const Camera CAMERA_DEFAULT = {
-    .position = {0.0f, 0.0f, -0.5f},
-    .target = {0.0f, 0.0f, 0.0f},
+    .position = {0.0f, 0.0f, 0.0f},
     .front = {0.0f, 0.0f, -1.0f},
 
     .yaw = 0.0f,
@@ -45,22 +44,20 @@ void camera_update(Camera *camera, unsigned int shader) {
     int width = viewport[2];
     int height = viewport[3];
 
-    mat4s projection = glms_perspective(
+    const mat4s projection = glms_perspective(
         glm_rad(camera->fov),
         (float)width/(float)height,
         0.1f,
         100.0f
     );
 
-    vec3s temp = glms_vec3_add(camera->position, camera->front);
-
-    mat4s view = glms_lookat(
+    const mat4s view = glms_lookat(
         camera->position,
-        temp,
+        glms_vec3_add(camera->position, camera->front),
         up_unit
     );
 
-    mat4s model = glms_scale_uni((mat4s)GLMS_MAT4_IDENTITY_INIT, 0.2f);
+    const mat4s model = GLMS_MAT4_IDENTITY;
 
     glUseProgram(shader);
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
@@ -104,10 +101,7 @@ void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos) {
     camera->yaw += x_off;
     camera->pitch += y_off;
 
-    if(camera->pitch > 89.0f)
-        camera->pitch = 89.0f;
-    else if(camera->pitch < -89.0f)
-        camera->pitch = -89.0f;
+    camera->pitch = glm_clamp(camera->pitch, -89.0f, 89.0f);
 
     vec3s dir = {
         cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch)),

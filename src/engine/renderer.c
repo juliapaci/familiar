@@ -2,7 +2,6 @@
 
 #include <engine/shader.h>
 #include <stb/stb_image.h>
-#include <string.h>
 
 // TODO: batch renderer once performance becomes an issue
 
@@ -88,6 +87,105 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
     r->triangle_data[offset + 0] = a;
     r->triangle_data[offset + 1] = b;
     r->triangle_data[offset + 2] = c;
+}
+
+void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d) {
+    // TODO: triangle strip/fan or index buffer?
+    render_push_triangle(r, a, b, c);
+    render_push_triangle(r, b, c, d);
+}
+
+void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
+    glDisable(GL_DEPTH_TEST);
+    // TODO: maybe need a matrix stack or keep the camera matrices in the renderer or camera state so we can reset them (or maybe a whole different shader entirely)
+
+    render_push_quad(
+        r,
+        (RenderVertex){
+            .pos    = {rect.x, rect.y, 10},
+            .uv     = {0, 0},
+            .colour = {1, 1, 1, 1},
+            .texture= texture
+        },
+        (RenderVertex){
+            .pos    = {rect.x + rect.width, rect.y, 10},
+            .colour = {1, 1, 1, 1},
+            .uv     = {1, 0}
+        },
+        (RenderVertex){
+            .pos    = {rect.x, rect.y + rect.height, 10},
+            .colour = {1, 1, 1, 1},
+            .uv     = {0, 1}
+        },
+        (RenderVertex){
+            .pos    = {rect.x + rect.width, rect.y + rect.height, 10},
+            .colour = {1, 1, 1, 1},
+            .uv     = {1, 1}
+        }
+    );
+
+    glEnable(GL_DEPTH_TEST);
+}
+
+void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
+    const vec3s vertices[6*4] = {
+        {cube.x, cube.y, cube.z},
+        {cube.x + cube.width, cube.y, cube.z},
+        {cube.x, cube.y + cube.height, cube.z},
+        {cube.x + cube.width, cube.y + cube.height, cube.z},
+
+        {cube.x, cube.y, cube.z},
+        {cube.x, cube.y + cube.height, cube.z},
+        {cube.x, cube.y, cube.z + cube.depth},
+        {cube.x, cube.y + cube.height, cube.z + cube.depth},
+
+        {cube.x + cube.width, cube.y, cube.z},
+        {cube.x + cube.width, cube.y + cube.height, cube.z},
+        {cube.x + cube.width, cube.y, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y + cube.height, cube.z + cube.depth},
+
+        {cube.x, cube.y, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y, cube.z + cube.depth},
+        {cube.x, cube.y + cube.height, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y + cube.height, cube.z + cube.depth},
+
+        {cube.x, cube.y, cube.z},
+        {cube.x + cube.width, cube.y, cube.z},
+        {cube.x, cube.y, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y, cube.z + cube.depth},
+
+        {cube.x, cube.y + cube.height, cube.z},
+        {cube.x + cube.width, cube.y + cube.height, cube.z},
+        {cube.x, cube.y + cube.height, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y + cube.height, cube.z + cube.depth}
+    };
+
+    for(uint8_t i = 0; i < 6; i++) {
+        render_push_quad(
+            r,
+            (RenderVertex){
+                .pos    = vertices[4*i],
+                .uv     = {0, 0},
+                .colour = {1, 1, 1, 1},
+                .texture= texture
+            },
+            (RenderVertex){
+                .pos    = vertices[4*i + 1],
+                .uv     = {1, 0},
+                .colour = {1, 1, 1, 1}
+            },
+            (RenderVertex){
+                .pos    = vertices[4*i + 2],
+                .uv     = {0, 1},
+                .colour = {1, 1, 1, 1}
+            },
+            (RenderVertex){
+                .pos    = vertices[4*i + 3],
+                .uv     = {1, 1},
+                .colour = {1, 1, 1, 1}
+            }
+        );
+    }
 }
 
 GLuint _white_texture = UINT32_MAX;

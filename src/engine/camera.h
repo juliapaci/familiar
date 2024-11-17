@@ -6,7 +6,6 @@
 
 typedef struct {
     vec3s position;
-    vec3s target;
     vec3s front;
 
     float yaw;

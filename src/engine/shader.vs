@@ -13,7 +13,7 @@ uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
-    gl_Position = projection * view * model * vec4(a_pos, 1.0);
+    gl_Position = projection * view * vec4(a_pos, 1.0);
     v_colour = a_colour;
     v_uv = a_uv;
     v_texture = a_texture;

@@ -29,21 +29,17 @@ typedef struct {
 } Entity;
 
 void draw_entity(Renderer *renderer, Entity *entity) {
-    render_push_triangle(renderer,
-        (RenderVertex){
-            .pos = entity->pos,
-            .colour = {1, 1, 1, 1},
-            .uv = {0, 0},
-            .texture = entity->texture
-        }, (RenderVertex){
-            .pos = {10, 0, 0},
-            .colour = {1, 1, 1, 1},
-            .uv = {1, 0},
-        }, (RenderVertex){
-            .pos = {10, 10, 0},
-            .colour = {1, 1, 1, 1},
-            .uv = {1, 1},
-        }
+    render_draw_cube(
+        renderer,
+        (Cube){
+            entity->pos.x,
+            entity->pos.y,
+            entity->pos.z,
+            10,
+            10,
+            10
+        },
+        entity->texture
     );
 }
 
@@ -53,8 +49,8 @@ void free_entity(Entity *entity) {
 
 int main(void) {
     GLFWwindow *window = init_window("Familiar");
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 #if OPENGL_DEBUG_APP == 1
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(debug_log_callback, NULL);
@@ -83,11 +79,10 @@ int main(void) {
 
             draw_entity(&renderer, &entity);
             if(glfwGetKey(window, GLFW_KEY_O))
-                entity.pos.y += 4 * delta_time;
+                entity.pos.x += 4 * delta_time;
 
             process_camera_input(window, &renderer.camera);
             process_general_input(window, &wireframe);
-
         render_frame_end(&renderer);
 
         glfwSwapBuffers(window);

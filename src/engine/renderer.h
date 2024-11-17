@@ -9,6 +9,8 @@
 #define MAX_TRIANGLES   2048
 #define MAX_VERTICES    MAX_TRIANGLES * 3
 
+// TODO: normals
+
 typedef struct {
     vec3s pos;
     vec4s colour;
@@ -45,6 +47,22 @@ typedef struct {
     int32_t baseline;
 } RenderFont;
 
+typedef struct {
+    float x;
+    float y;
+    float width;
+    float height;
+} Rectangle;
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float width;
+    float height;
+    float depth;
+} Cube;
+
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
@@ -53,6 +71,9 @@ void render_frame_end(Renderer *renderer);
 
 // Note: texture id is found in `a`
 void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, RenderVertex c);
+void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d);
+void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
+void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 
 GLuint render_get_white_texture(void);
 
