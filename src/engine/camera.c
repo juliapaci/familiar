@@ -41,14 +41,14 @@ Camera camera_init(void) {
 void camera_update(Camera *camera, unsigned int shader) {
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    int width = viewport[2];
-    int height = viewport[3];
+    const GLint width = viewport[2];
+    const GLint height = viewport[3];
 
     const mat4s projection = glms_perspective(
         glm_rad(camera->fov),
         (float)width/(float)height,
-        0.1f,
-        100.0f
+        NEAR_PLANE,
+        FAR_PLANE
     );
 
     const mat4s view = glms_lookat(

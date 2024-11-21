@@ -4,6 +4,9 @@
 #include <GLFW/glfw3.h>
 #include <cglm/struct.h>
 
+#define NEAR_PLANE 0.1f
+#define FAR_PLANE 100.0f
+
 typedef struct {
     vec3s position;
     vec3s front;
@@ -25,6 +28,7 @@ extern const Camera CAMERA_DEFAULT;
 Camera camera_init(void);
 
 // updates camera shader values and stuff
+// NOTE: loads a perspective projection
 void camera_update(Camera *camera, unsigned int shader);
 
 // glfw stuff

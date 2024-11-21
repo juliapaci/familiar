@@ -48,6 +48,7 @@ void render_frame_begin(Renderer *r) {
     r->triangle_count = 0;
     r->texture_count = 0;
 }
+
 void render_frame_end(Renderer *r) {
     for(GLuint i = 0; i < r->texture_count; i++) {
         glActiveTexture(GL_TEXTURE0 + i);
@@ -60,6 +61,52 @@ void render_frame_end(Renderer *r) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
 
     glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
+}
+
+void render_switch_orthographic(Renderer *r) {
+    render_frame_end(r);
+    render_frame_begin(r);
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glUseProgram(r->shader);
+    const mat4s orthographic = glms_ortho(
+        -viewport[2]/(2.0 * r->camera.fov), viewport[2]/(2.0 * r->camera.fov),
+        -viewport[3]/(2.0 * r->camera.fov), viewport[3]/(2.0 * r->camera.fov),
+        // TODO: make everything in scope somehow
+        -100.0, 100.0
+    );
+
+    glUniformMatrix4fv(
+        glGetUniformLocation(r->shader, "projection"),
+        1,
+        GL_FALSE,
+        (const GLfloat *)&orthographic.raw
+    );
+}
+
+void render_switch_perspective(Renderer *r) {
+    render_frame_end(r);
+    render_frame_begin(r);
+
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glUseProgram(r->shader);
+    const mat4s perspective = glms_perspective(
+        glm_rad(r->camera.fov),
+        (float)viewport[2]/viewport[3],
+        NEAR_PLANE,
+        FAR_PLANE
+    );
+
+    glUniformMatrix4fv(
+        glGetUniformLocation(r->shader, "projection"),
+        1,
+        GL_FALSE,
+        (const GLfloat *)&perspective.raw
+    );
 }
 
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
@@ -96,9 +143,6 @@ void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex 
 }
 
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
-    glDisable(GL_DEPTH_TEST);
-    // TODO: maybe need a matrix stack or keep the camera matrices in the renderer or camera state so we can reset them (or maybe a whole different shader entirely)
-
     render_push_quad(
         r,
         (RenderVertex){
@@ -123,11 +167,10 @@ void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
             .uv     = {1, 1}
         }
     );
-
-    glEnable(GL_DEPTH_TEST);
 }
 
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
+    // can easily generalize/macroize this but its more clear this way
     const vec3s vertices[6*4] = {
         {cube.x, cube.y, cube.z},
         {cube.x + cube.width, cube.y, cube.z},
@@ -135,13 +178,13 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
         {cube.x + cube.width, cube.y + cube.height, cube.z},
 
         {cube.x, cube.y, cube.z},
-        {cube.x, cube.y + cube.height, cube.z},
         {cube.x, cube.y, cube.z + cube.depth},
+        {cube.x, cube.y + cube.height, cube.z},
         {cube.x, cube.y + cube.height, cube.z + cube.depth},
 
         {cube.x + cube.width, cube.y, cube.z},
-        {cube.x + cube.width, cube.y + cube.height, cube.z},
         {cube.x + cube.width, cube.y, cube.z + cube.depth},
+        {cube.x + cube.width, cube.y + cube.height, cube.z},
         {cube.x + cube.width, cube.y + cube.height, cube.z + cube.depth},
 
         {cube.x, cube.y, cube.z + cube.depth},
@@ -164,7 +207,7 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
         render_push_quad(
             r,
             (RenderVertex){
-                .pos    = vertices[4*i],
+                .pos    = vertices[4*i + 0],
                 .uv     = {0, 0},
                 .colour = {1, 1, 1, 1},
                 .texture= texture

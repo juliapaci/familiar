@@ -65,7 +65,7 @@ int main(void) {
     set_cam_callback(window, &renderer.camera);
 
     Entity entity = {
-        .texture    = render_texture_load_file("build/awesomeface.png"),
+        .texture    = render_texture_load_file("assets/awesomeface.png"),
         .pos        = {0, 0, 0}
     };
 
@@ -77,13 +77,17 @@ int main(void) {
             update_delta_time();
             camera_update(&renderer.camera, renderer.shader);
 
-            draw_entity(&renderer, &entity);
             if(glfwGetKey(window, GLFW_KEY_O))
                 entity.pos.x += 4 * delta_time;
-
-            process_camera_input(window, &renderer.camera);
-            process_general_input(window, &wireframe);
+            else if(glfwGetKey(window, GLFW_KEY_G))
+                render_switch_orthographic(&renderer);
+            else if(glfwGetKey(window, GLFW_KEY_F))
+                render_switch_perspective(&renderer);
+            draw_entity(&renderer, &entity);
         render_frame_end(&renderer);
+
+        process_camera_input(window, &renderer.camera);
+        process_general_input(window, &wireframe);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
