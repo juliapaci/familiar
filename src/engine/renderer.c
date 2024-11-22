@@ -3,8 +3,6 @@
 #include <engine/shader.h>
 #include <stb/stb_image.h>
 
-// TODO: batch renderer once performance becomes an issue
-
 void render_init(Renderer *r) {
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
@@ -43,8 +41,6 @@ void render_free(Renderer *r) {
 }
 
 void render_frame_begin(Renderer *r) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     r->triangle_count = 0;
     r->texture_count = 0;
 }
@@ -251,11 +247,7 @@ GLuint render_get_white_texture(void) {
 	return _white_texture;
 }
 
-GLuint render_texture_load_file(const char *path) {
-    stbi_set_flip_vertically_on_load(true);
-    int32_t width, height, channels;
-    uint8_t *data = stbi_load(path, &width, &height, &channels, 0);
-
+GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels) {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -269,6 +261,14 @@ GLuint render_texture_load_file(const char *path) {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     return texture;
+}
+
+GLuint render_texture_load_file(const char *path) {
+    stbi_set_flip_vertically_on_load(true);
+    int32_t width, height, channels;
+    uint8_t *data = stbi_load(path, &width, &height, &channels, 0);
+
+    return render_texture_load(data, width, height, channels);
 }
 
 void render_texture_free(GLuint texture) {
@@ -290,10 +290,10 @@ void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, f
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     GLint swizzles[4] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzles);
-    glTexImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 512, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
 
     font->scale = stbtt_ScaleForPixelHeight(&info, font_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, NULL);

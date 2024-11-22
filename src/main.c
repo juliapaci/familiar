@@ -26,6 +26,7 @@ void GLAPIENTRY debug_log_callback(
 typedef struct {
     GLuint texture;
     vec3s pos;
+    size_t size;
 } Entity;
 
 void draw_entity(Renderer *renderer, Entity *entity) {
@@ -35,9 +36,9 @@ void draw_entity(Renderer *renderer, Entity *entity) {
             entity->pos.x,
             entity->pos.y,
             entity->pos.z,
-            10,
-            10,
-            10
+            entity->size,
+            entity->size,
+            entity->size
         },
         entity->texture
     );
@@ -66,7 +67,16 @@ int main(void) {
 
     Entity entity = {
         .texture    = render_texture_load_file("assets/awesomeface.png"),
-        .pos        = {0, 0, 0}
+        .pos        = {0, 0, 0},
+        .size       = 10
+    };
+
+    RenderFont font;
+    render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 30);
+    Entity entity2 = {
+        .texture    = font.texture,
+        .pos        = {0, 0, 0},
+        .size       = 2
     };
 
     while(!glfwWindowShouldClose(window)) {
@@ -79,11 +89,12 @@ int main(void) {
 
             if(glfwGetKey(window, GLFW_KEY_O))
                 entity.pos.x += 4 * delta_time;
-            else if(glfwGetKey(window, GLFW_KEY_G))
-                render_switch_orthographic(&renderer);
-            else if(glfwGetKey(window, GLFW_KEY_F))
-                render_switch_perspective(&renderer);
+
+            render_switch_perspective(&renderer);
             draw_entity(&renderer, &entity);
+
+            render_switch_orthographic(&renderer);
+            draw_entity(&renderer, &entity2);
         render_frame_end(&renderer);
 
         process_camera_input(window, &renderer.camera);
@@ -94,6 +105,8 @@ int main(void) {
     }
 
     free_entity(&entity);
+    free_entity(&entity2);
+    render_font_free(&font);
     render_free(&renderer);
     glfwTerminate();
     return 0;

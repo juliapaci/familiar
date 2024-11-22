@@ -83,7 +83,7 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 
 GLuint render_get_white_texture(void);
 
-GLuint render_texture_load(const uint8_t data, size_t width, size_t height);
+GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);
 GLuint render_texture_load_file(const char *path);
 void render_texture_free(GLuint texture);
 
