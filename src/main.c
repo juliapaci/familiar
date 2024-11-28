@@ -73,11 +73,6 @@ int main(void) {
 
     RenderFont font;
     render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 30);
-    Entity entity2 = {
-        .texture    = font.texture,
-        .pos        = {0, 0, 0},
-        .size       = 2
-    };
 
     while(!glfwWindowShouldClose(window)) {
         glClearColor(0.1, 0.1, 0.1, 1);
@@ -92,9 +87,10 @@ int main(void) {
 
             render_switch_perspective(&renderer);
             draw_entity(&renderer, &entity);
+            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
 
             render_switch_orthographic(&renderer);
-            draw_entity(&renderer, &entity2);
+            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
         render_frame_end(&renderer);
 
         process_camera_input(window, &renderer.camera);
@@ -105,7 +101,6 @@ int main(void) {
     }
 
     free_entity(&entity);
-    free_entity(&entity2);
     render_font_free(&font);
     render_free(&renderer);
     glfwTerminate();

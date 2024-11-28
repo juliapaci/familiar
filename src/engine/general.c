@@ -20,7 +20,6 @@ GLFWwindow *init_window(const char *name) {
 #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 #endif // OPENGL_DEBUG_APP
-
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 

@@ -78,6 +78,7 @@ void render_switch_perspective(Renderer *r);
 // Note: texture id is found in `a`
 void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, RenderVertex c);
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d);
+void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 
@@ -90,5 +91,8 @@ void render_texture_free(GLuint texture);
 void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size);
 void render_font_load_file(RenderFont *font, const char *path, float size);
 void render_font_free(RenderFont *font);
+
+// textures of characters making up `text`
+void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text);
 
 #endif // __RENDERER_H__

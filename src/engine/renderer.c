@@ -2,6 +2,7 @@
 
 #include <engine/shader.h>
 #include <stb/stb_image.h>
+#include <string.h>
 
 void render_init(Renderer *r) {
     glGenVertexArrays(1, &r->vao);
@@ -28,6 +29,7 @@ void render_init(Renderer *r) {
     camera_update(&r->camera, r->shader);
 
     GLuint tex_loc = glGetUniformLocation(r->shader, "u_tex");
+    // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     glUniform1iv(tex_loc, 8, textures);
     glEnable(GL_BLEND);
@@ -106,7 +108,7 @@ void render_switch_perspective(Renderer *r) {
 }
 
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
-    // UINT32_MAX is error value
+    // UINT32_MAX is error/none value
     GLuint texture = UINT32_MAX;
     for(GLuint i = 0; i < r->texture_count; i++) {
         if(r->textures[i] == a.texture) {
@@ -138,30 +140,44 @@ void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex 
     render_push_triangle(r, b, c, d);
 }
 
-void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
+void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture) {
     render_push_quad(
         r,
         (RenderVertex){
-            .pos    = {rect.x, rect.y, 10},
-            .uv     = {0, 0},
+            .pos    = {rect.x, rect.y, 0},
+            .uv     = {uv.x, uv.y},
             .colour = {1, 1, 1, 1},
             .texture= texture
         },
         (RenderVertex){
-            .pos    = {rect.x + rect.width, rect.y, 10},
+            .pos    = {rect.x + rect.width, rect.y, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {1, 0}
+            .uv     = {uv.x + uv.width, uv.y}
         },
         (RenderVertex){
-            .pos    = {rect.x, rect.y + rect.height, 10},
+            .pos    = {rect.x, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {0, 1}
+            .uv     = {uv.x, uv.y + uv.height}
         },
         (RenderVertex){
-            .pos    = {rect.x + rect.width, rect.y + rect.height, 10},
+            .pos    = {rect.x + rect.width, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {1, 1}
+            .uv     = {uv.x + uv.width, uv.y + uv.height}
         }
+    );
+}
+
+void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
+    render_draw_rectangle_uv(
+        r,
+        (Rectangle){
+            .x = 0,
+            .y = 0,
+            .width = 1,
+            .height = 1
+        },
+        rect,
+        texture
     );
 }
 
@@ -293,7 +309,7 @@ void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, f
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     GLint swizzles[4] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzles);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, tmp_bitmap);
 
     font->scale = stbtt_ScaleForPixelHeight(&info, font_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, NULL);
@@ -318,4 +334,27 @@ void render_font_load_file(RenderFont *font, const char *path, float size) {
 
 void render_font_free(RenderFont *font) {
     glDeleteTextures(1, &font->texture);
+}
+
+void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text) {
+    for(size_t i = 0; i < strlen(text); i++) {
+        const stbtt_packedchar *const c = &font->cdata[text[i] - 32];
+
+        Rectangle uv = {
+            .x = c->x0 / 512.0f,
+            .y = c->y0 / 512.0f,
+            .width = (c->x1 - c->x0) / 512.0f,
+            .height = (c->y1 - c->y0) / 512.0f
+        };
+
+        Rectangle area = {
+            .x = pos.x + c->xoff,
+            .y = pos.y - c->yoff2,
+            .width = c->x1 - c->x0,
+            .height = c->y1 - c->y0
+        };
+
+        render_draw_rectangle_uv(r, area, uv, font->texture);
+        pos.x += c->xadvance;
+    }
 }
