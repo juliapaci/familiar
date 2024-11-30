@@ -13,6 +13,22 @@ void update_delta_time(void) {
     last_frame = current_frame;
 }
 
+#if OPENGL_DEBUG_APP == 1
+void GLAPIENTRY debug_log_callback(
+        GLenum source,
+        GLenum type,
+        GLuint id,
+        GLenum severity,
+        GLsizei length,
+        const GLchar *message,
+        const void *userParam
+) {
+    fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+            ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+#endif // OPENGL_DEBUG_APP
+
 GLFWwindow *init_window(const char *name) {
     glfwInit();
 #if OPENGL_DEBUG_APP == 1
@@ -24,6 +40,7 @@ GLFWwindow *init_window(const char *name) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow *window = glfwCreateWindow(800, 600, name, NULL, NULL);
+
     set_framebuffer_size_callback(window);
     if(window == NULL) {
         fprintf(stderr, "failed to create glfw window\n");
@@ -39,6 +56,13 @@ GLFWwindow *init_window(const char *name) {
     }
 
     glViewport(0, 0, 800, 600);
+
+#if OPENGL_DEBUG_APP == 1
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(debug_log_callback, NULL);
+#endif // OPENGL_DEBUG_APP
 
     return window;
 }

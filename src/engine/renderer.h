@@ -72,8 +72,8 @@ void render_frame_end(Renderer *renderer);
 // perspective changes
 // NOTE: renders the current batch before proceeding
 // TODO: replace frame_end/begin (hacky fix until batching)
-void render_switch_orthographic(Renderer *r);
 void render_switch_perspective(Renderer *r);
+void render_switch_orthographic(Renderer *r);
 
 // Note: texture id is found in `a`
 void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, RenderVertex c);

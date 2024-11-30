@@ -69,7 +69,7 @@ void build_dependencies(void) {
 }
 
 void build_familiar(void) {
-    CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
+    CMD("cc", CFLAGS, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
 }
 
 // NOTE: very bare bones just so clangd can pick up on stuff

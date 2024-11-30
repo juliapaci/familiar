@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <cglm/struct.h>
 
-#define NEAR_PLANE 0.1f
+#define NEAR_PLANE 0.01f
 #define FAR_PLANE 100.0f
 
 typedef struct {

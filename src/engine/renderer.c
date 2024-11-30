@@ -34,6 +34,11 @@ void render_init(Renderer *r) {
     glUniform1iv(tex_loc, 8, textures);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    render_get_white_texture(); // default "no texture" as index 0
+    for(size_t i = 0; i < 8; i++) {
+        r->textures[i] = 0;
+    }
 }
 
 void render_free(Renderer *r) {
@@ -68,7 +73,6 @@ void render_switch_orthographic(Renderer *r) {
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    glUseProgram(r->shader);
     const mat4s orthographic = glms_ortho(
         -viewport[2]/(2.0 * r->camera.fov), viewport[2]/(2.0 * r->camera.fov),
         -viewport[3]/(2.0 * r->camera.fov), viewport[3]/(2.0 * r->camera.fov),
@@ -76,6 +80,7 @@ void render_switch_orthographic(Renderer *r) {
         -100.0, 100.0
     );
 
+    glUseProgram(r->shader);
     glUniformMatrix4fv(
         glGetUniformLocation(r->shader, "projection"),
         1,
@@ -91,7 +96,6 @@ void render_switch_perspective(Renderer *r) {
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    glUseProgram(r->shader);
     const mat4s perspective = glms_perspective(
         glm_rad(r->camera.fov),
         (float)viewport[2]/viewport[3],
@@ -99,6 +103,7 @@ void render_switch_perspective(Renderer *r) {
         FAR_PLANE
     );
 
+    glUseProgram(r->shader);
     glUniformMatrix4fv(
         glGetUniformLocation(r->shader, "projection"),
         1,
@@ -110,6 +115,7 @@ void render_switch_perspective(Renderer *r) {
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
     // UINT32_MAX is error/none value
     GLuint texture = UINT32_MAX;
+    // check for existing texture
     for(GLuint i = 0; i < r->texture_count; i++) {
         if(r->textures[i] == a.texture) {
             texture = i;
@@ -117,17 +123,20 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
         }
     }
 
+    // check for new texture
     if(texture == UINT32_MAX && r->texture_count < 8) {
         r->textures[r->texture_count] = a.texture;
         texture = r->texture_count++;
     }
 
+    // flush batch
     if(r->triangle_count == MAX_TRIANGLES || texture == UINT32_MAX) {
         render_frame_end(r);
         render_frame_begin(r);
     }
 
-    texture = c.texture = b.texture = a.texture;
+    // printf("%d\n", texture);
+    c.texture = b.texture = a.texture = texture;
     const size_t offset = r->triangle_count++ * 3;
     r->triangle_data[offset + 0] = a;
     r->triangle_data[offset + 1] = b;
@@ -135,6 +144,7 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
 }
 
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d) {
+    b.texture = a.texture;
     // TODO: triangle strip/fan or index buffer?
     render_push_triangle(r, a, b, c);
     render_push_triangle(r, b, c, d);
@@ -182,7 +192,7 @@ void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
 }
 
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
-    // can easily generalize/macroize this but its more clear this way
+    // can generalize/macroize this but its more clear this way
     const vec3s vertices[6*4] = {
         {cube.x, cube.y, cube.z},
         {cube.x + cube.width, cube.y, cube.z},
@@ -250,14 +260,14 @@ GLuint render_get_white_texture(void) {
         return _white_texture;
 
 	GLuint texture;
-	uint8_t image[4] = {255, 255, 255, 255};
+	uint8_t image[4] = {UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX};
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA8, GL_UNSIGNED_BYTE, image);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
     _white_texture = texture;
 
 	return _white_texture;
@@ -309,7 +319,8 @@ void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, f
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     GLint swizzles[4] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzles);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, tmp_bitmap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     font->scale = stbtt_ScaleForPixelHeight(&info, font_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, NULL);
