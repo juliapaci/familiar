@@ -60,15 +60,12 @@ int main(void) {
             entity.pos.x += 4 * delta_time;
 
         render_frame_begin(&renderer);
-            render_switch_perspective(&renderer);
-            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
+            render_switch_projection(&renderer, PROJECTION_PERSPECTIVE);
             draw_entity(&renderer, &entity);
-            entity.pos.x += 12;
-            draw_entity(&renderer, &entity);
-            entity.pos.x -= 12;
+            // render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
 
-            render_switch_orthographic(&renderer);
-            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
+            // render_switch_projection(&renderer, PROJECTION_ORTHOGRAPHIC);
+            // render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
         render_frame_end(&renderer);
 
         process_camera_input(window, &renderer.camera);
@@ -78,11 +75,6 @@ int main(void) {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    for(size_t i = 0; i < 8; i++) {
-        printf("%d, ", renderer.textures[i]);
-    }
-    printf("\n");
 
     free_entity(&entity);
     render_font_free(&font);
