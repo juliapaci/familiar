@@ -16,7 +16,6 @@ typedef struct {
     vec4s colour;
 
     vec2s uv;
-    GLuint texture;
 } RenderVertex;
 
 // TODO: lookat useing TEXTURE_2D_ARRAY
@@ -33,8 +32,11 @@ typedef struct {
     RenderVertex triangle_data[MAX_VERTICES];
     uint16_t triangle_count;
 
+    // Current texture for batching textures in independant draw calls
+    // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
     GLuint textures[8];
     uint8_t texture_count;
+    GLuint texture_index; // current index
 } Renderer;
 
 typedef struct {
@@ -66,6 +68,7 @@ typedef struct {
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
+// batch control
 void render_frame_begin(Renderer *renderer);
 void render_frame_end(Renderer *renderer);
 
@@ -79,8 +82,8 @@ typedef enum {
 void render_switch_projection(Renderer *r, Projection projection);
 
 // Note: texture id is found in `a`
-void render_push_triangle(Renderer *renderer, RenderVertex a, RenderVertex b, RenderVertex c);
-void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d);
+void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture);
+void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture);
 void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);

@@ -5,6 +5,8 @@
 #include <string.h>
 
 void render_init(Renderer *r) {
+    *r = (Renderer){0};
+
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
 
@@ -19,7 +21,6 @@ void render_init(Renderer *r) {
 
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, texture));
     glEnableVertexAttribArray(3);
 
     r->shader = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
@@ -28,34 +29,39 @@ void render_init(Renderer *r) {
     r->camera = camera_init();
     camera_update(&r->camera, r->shader);
 
-    GLuint tex_loc = glGetUniformLocation(r->shader, "u_tex");
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    glUniform1iv(tex_loc, 8, textures);
+    glUniform1iv(glGetUniformLocation(r->shader, "u_textures"), 8, textures);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    render_get_white_texture(); // default "no texture" as index 0
-    r->textures[0] = 0;
-    r->texture_count = 1;
+    // default "no texture" as index 0
+    r->textures[r->texture_count++] = render_get_white_texture();
+    glUniform1i(glGetUniformLocation(r->shader, "texture_index"), 0);
 }
 
 void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader);
+
+    glDeleteTextures(1, &r->textures[0]); // white texture
 }
 
 void render_frame_begin(Renderer *r) {
     r->triangle_count = 0;
-    r->texture_count = 1;
 }
 
 void render_frame_end(Renderer *r) {
-    for(GLuint i = 0; i < r->texture_count; i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, r->textures[i]);
-    }
+    const GLuint texture = r->textures[r->texture_index];
+    size_t index = 0;
+    for(; index < r->texture_count; index++)
+        if(r->textures[index] == texture)
+            break;
+
+    glActiveTexture(GL_TEXTURE0 + index);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(glGetUniformLocation(r->shader, "texture_index"), index);
 
     glUseProgram(r->shader);
     glBindVertexArray(r->vao);
@@ -102,50 +108,42 @@ void render_switch_projection(Renderer *r, Projection projection) {
 
 }
 
-void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c) {
-    // FLT_MAX is error/none value
-    float texture = FLT_MAX;
-    // check for existing texture
-
-    for(GLuint i = 1; i < r->texture_count; i++) {
-        if(r->textures[i] == a.texture) {
-            texture = (float)a.texture;
-            break;
-        }
-    }
-
-    // check for new texture
-    if(texture == FLT_MAX && r->texture_count < 8) {
-        r->textures[r->texture_count++] = a.texture;
-        texture = (float)a.texture;
-    }
-
-    // printf("a.texture: %d\n", a.texture);
-    // printf("texture: %f\n", texture);
-    // printf("texture_count: %d\n", r->texture_count);
-    // printf("textures: ");
-    // for(size_t i = 0; i < 8; i++)
-    //     printf("%d, ", r->textures[i]);
-    // printf("\n");
+void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
+    bool same_texture = texture == r->textures[r->texture_index];
 
     // flush batch
-    if(r->triangle_count == MAX_TRIANGLES || texture == UINT32_MAX) {
+    if(r->triangle_count == MAX_TRIANGLES || r->texture_count > 8 || !same_texture) {
         render_frame_end(r);
         render_frame_begin(r);
+        if(r->texture_count > 8)
+            r->texture_count = 0;
     }
 
-    c.texture = b.texture = a.texture = texture;
+    // new texture
+    if(!same_texture && r->texture_count < 8) {
+        bool exists = false;
+        for(uint8_t i = 0; i < r->texture_count; i++) {
+            if(r->textures[i] == texture) {
+                exists = true;
+                r->texture_index = i;
+            }
+        }
+
+        if(!exists)
+            r->textures[r->texture_count++] = texture;
+    }
+
+
     const size_t offset = r->triangle_count++ * 3;
     r->triangle_data[offset + 0] = a;
     r->triangle_data[offset + 1] = b;
     r->triangle_data[offset + 2] = c;
 }
 
-void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d) {
-    b.texture = a.texture;
+void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
     // TODO: triangle strip/fan or index buffer?
-    render_push_triangle(r, a, b, c);
-    render_push_triangle(r, b, c, d);
+    render_push_triangle(r, a, b, c, texture);
+    render_push_triangle(r, b, c, d, texture);
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture) {
@@ -155,7 +153,6 @@ void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint 
             .pos    = {rect.x, rect.y, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x, uv.y},
-            .texture= texture
         },
         (RenderVertex){
             .pos    = {rect.x + rect.width, rect.y, 0},
@@ -171,7 +168,8 @@ void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint 
             .pos    = {rect.x + rect.width, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x + uv.width, uv.y + uv.height}
-        }
+        },
+        texture
     );
 }
 
@@ -230,7 +228,6 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
                 .pos    = vertices[4*i + 0],
                 .uv     = {0, 0},
                 .colour = {1, 1, 1, 1},
-                .texture= texture
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 1],
@@ -246,7 +243,8 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
                 .pos    = vertices[4*i + 3],
                 .uv     = {1, 1},
                 .colour = {1, 1, 1, 1}
-            }
+            },
+            texture
         );
     }
 }
