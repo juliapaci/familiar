@@ -5,11 +5,10 @@
 #include <glad/glad.h>
 #include <engine/camera.h>
 #include <stb/stb_truetype.h>
+#include <engine/shader.h>
 
 #define MAX_TRIANGLES   2048
 #define MAX_VERTICES    MAX_TRIANGLES * 3
-
-// TODO: normals
 
 typedef struct {
     vec3s pos;
@@ -23,7 +22,9 @@ typedef struct {
     // OpenGL objects
     GLuint vao;
     GLuint vbo;
-    GLuint shader;
+
+    // shader
+    Shader shader;
 
     // camera
     Camera camera;

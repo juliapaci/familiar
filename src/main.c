@@ -60,30 +60,24 @@ int main(void) {
             entity.pos.x += 4 * delta_time;
 
         render_frame_begin(&renderer);
-            // render_switch_projection(&renderer, PROJECTION_PERSPECTIVE);
+            render_switch_projection(&renderer, PROJECTION_PERSPECTIVE);
             draw_entity(&renderer, &entity);
-            const GLuint texture = entity.texture;
-            entity.pos.x += 12;
-            entity.texture = font.texture;
-            draw_entity(&renderer, &entity);
-            entity.texture = texture;
-            entity.pos.x -= 12;
-            // render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
+            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
 
-            // render_switch_projection(&renderer, PROJECTION_ORTHOGRAPHIC);
-            // render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
+            render_switch_projection(&renderer, PROJECTION_ORTHOGRAPHIC);
+            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
         render_frame_end(&renderer);
 
         process_camera_input(window, &renderer.camera);
         process_general_input(window, &wireframe);
-        camera_update(&renderer.camera, renderer.shader);
+        camera_update(&renderer.camera, &renderer.shader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     free_entity(&entity);
-    // render_font_free(&font);
+    render_font_free(&font);
     render_free(&renderer);
     glfwTerminate();
     return 0;

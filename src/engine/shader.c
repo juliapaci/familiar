@@ -1,6 +1,5 @@
 #include "shader.h"
 
-#include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -78,4 +77,21 @@ unsigned int shader_make(const char *vertex_path, const char *fragment_path) {
     free((void *)fragment_source);
 
     return program;
+}
+
+void shader_update_locations(Shader *shader) {
+
+    GLint uniform_amount = 0;
+    glGetProgramInterfaceiv(shader->id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniform_amount);
+
+    const GLenum properties = GL_NAME_LENGTH;
+    for(GLint i = 0; i < uniform_amount; i++) {
+        GLint size;
+        glGetProgramResourceiv(shader->id, GL_UNIFORM, i, 1, &properties, 1, NULL, &size);
+
+        char *name = malloc(size);
+        glGetProgramResourceName(shader->id, GL_UNIFORM, i, size, NULL, name);
+        hmput(shader->uniforms, name, i);
+        free(name);
+    }
 }

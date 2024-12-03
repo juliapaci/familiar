@@ -1,6 +1,8 @@
 #define NOBUILD_IMPLEMENTATION
 #include "nob.h"
 
+#include <ctype.h>
+
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
 
@@ -11,14 +13,13 @@
 
 #define BUILD "build"
 #define ENGINE "engine"
-#define IMPLEMENTATION "implementations"
 #define THIRD_PARTY "external"
 #define SRC "src"
 
-#define CFLAGS "-Wall", "-Wextra", "-ggdb"
+#define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", "-ggdb"
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-Lbuild", "-Iexternal", "-Iexternal/include", "-Iexternal/cglm/include", "-Isrc", "-l:glad.o", "-lglfw", "-lGL", "-lm", "-lengine", "-l:stb.o"
+#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "include")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -45,7 +46,29 @@ void build_dep_glad(void) {
 }
 
 void build_dep_stb(void) {
-    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "stb.o"), PATH(SRC, ENGINE, IMPLEMENTATION, "stb.c"));
+    FILE *impl = fopen(PATH(BUILD, "stb_implementations.c"), "w");
+    if(impl == NULL)
+        return;
+
+    FOREACH_FILE_IN_DIR(file, PATH(THIRD_PARTY, "stb"), {
+        if(file[0] == '.') // ".", ".."
+            continue;
+
+        const char *header = CONCAT("#include ", "<stb/", file, ">\n");
+
+        char *name = (char *)file;
+        *(name + (strlen(name) - strlen(".h"))) = '\0';
+
+        for(size_t i = 0; i < strlen(name); i++)
+            name[i] = toupper(name[i]);
+
+        fputs(CONCAT("#define ", name, "_IMPLEMENTATION\n"), impl);
+        for(size_t i = 0; i < strlen(name); i++)
+            name[i] = tolower(name[i]);
+        fputs(header, impl);
+    });
+
+    CMD("cc", CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, "stb.o"), PATH(BUILD, "stb_implementations.c"));
 }
 
 #define ENGINE_BUILD(translation_unit) \

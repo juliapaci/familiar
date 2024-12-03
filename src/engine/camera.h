@@ -1,6 +1,7 @@
 #ifndef __CAMERA_H__
 #define __CAMERA_H__
 
+#include <engine/shader.h>
 #include <GLFW/glfw3.h>
 #include <cglm/struct.h>
 
@@ -27,9 +28,9 @@ extern const float camera_speed;
 extern const Camera CAMERA_DEFAULT;
 Camera camera_init(void);
 
-// updates camera shader values and stuff
+// updates camera shader projection transformation matrices
 // NOTE: loads a perspective projection
-void camera_update(Camera *camera, unsigned int shader);
+void camera_update(Camera *camera, Shader *shader);
 
 // glfw stuff
 void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos);

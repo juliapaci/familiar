@@ -38,7 +38,7 @@ Camera camera_init(void) {
     return camera;
 }
 
-void camera_update(Camera *camera, unsigned int shader) {
+void camera_update(Camera *camera, Shader *shader) {
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const GLint width = viewport[2];
@@ -59,10 +59,10 @@ void camera_update(Camera *camera, unsigned int shader) {
 
     const mat4s model = GLMS_MAT4_IDENTITY;
 
-    glUseProgram(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, (const GLfloat *)view.raw);
-    glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, (const GLfloat *)model.raw);
+    glUseProgram(shader->id);
+    glUniformMatrix4fv(hmget(shader->uniforms, "u_projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
+    glUniformMatrix4fv(hmget(shader->uniforms, "u_view"), 1, GL_FALSE, (const GLfloat *)view.raw);
+    glUniformMatrix4fv(hmget(shader->uniforms, "u_model"), 1, GL_FALSE, (const GLfloat *)model.raw);
 }
 
 void process_camera_input(GLFWwindow *window, Camera *camera) {
