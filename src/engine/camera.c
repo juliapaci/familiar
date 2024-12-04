@@ -60,9 +60,9 @@ void camera_update(Camera *camera, Shader *shader) {
     const mat4s model = GLMS_MAT4_IDENTITY;
 
     glUseProgram(shader->id);
-    glUniformMatrix4fv(hmget(shader->uniforms, "u_projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
-    glUniformMatrix4fv(hmget(shader->uniforms, "u_view"), 1, GL_FALSE, (const GLfloat *)view.raw);
-    glUniformMatrix4fv(hmget(shader->uniforms, "u_model"), 1, GL_FALSE, (const GLfloat *)model.raw);
+    glUniformMatrix4fv(shget(shader->uniforms, "u_projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
+    glUniformMatrix4fv(shget(shader->uniforms, "u_view"), 1, GL_FALSE, (const GLfloat *)view.raw);
+    glUniformMatrix4fv(shget(shader->uniforms, "u_model"), 1, GL_FALSE, (const GLfloat *)model.raw);
 }
 
 void process_camera_input(GLFWwindow *window, Camera *camera) {

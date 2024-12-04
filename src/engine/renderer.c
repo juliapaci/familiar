@@ -1,6 +1,5 @@
 #include "renderer.h"
 
-#define STB_DS_IMPLEMENTATION
 #include <stb/stb_image.h>
 #include <stb/stb_ds.h>
 #include <string.h>
@@ -8,6 +7,7 @@
 void render_init(Renderer *r) {
     *r = (Renderer){0};
 
+    // initialise buffers
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
 
@@ -15,6 +15,7 @@ void render_init(Renderer *r) {
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
 
+    // vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, pos));
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, colour));
@@ -24,7 +25,10 @@ void render_init(Renderer *r) {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
+    // shader
     r->shader.id = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
+    sh_new_arena(r->shader.uniforms);
+    shdefault(r->shader.uniforms, -1);
     shader_update_locations(&r->shader);
     glUseProgram(r->shader.id);
 
@@ -33,13 +37,13 @@ void render_init(Renderer *r) {
 
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    glUniform1iv(hmget(r->shader.uniforms, "u_textures"), 8, textures);
+    glUniform1iv(shget(r->shader.uniforms, "u_textures[0]"), 8, textures);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // default "no texture" as index 0
     r->textures[r->texture_count++] = render_get_white_texture();
-    glUniform1i(hmget(r->shader.uniforms, "u_texture_index"), 0);
+    glUniform1i(shget(r->shader.uniforms, "u_texture_index"), 0);
 }
 
 void render_free(Renderer *r) {
@@ -48,6 +52,7 @@ void render_free(Renderer *r) {
     glDeleteProgram(r->shader.id);
 
     glDeleteTextures(1, &r->textures[0]); // white texture
+    shfree(r->shader.uniforms);
 }
 
 void render_frame_begin(Renderer *r) {
@@ -57,7 +62,7 @@ void render_frame_begin(Renderer *r) {
 void render_frame_end(Renderer *r) {
     glActiveTexture(GL_TEXTURE0 + r->texture_index);
     glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
-    glUniform1i(hmget(r->shader.uniforms, "u_texture_index"), r->texture_index);
+    glUniform1i(shget(r->shader.uniforms, "u_texture_index"), r->texture_index);
 
     glUseProgram(r->shader.id);
     glBindVertexArray(r->vao);
@@ -96,7 +101,7 @@ void render_switch_projection(Renderer *r, Projection projection) {
 
     glUseProgram(r->shader.id);
     glUniformMatrix4fv(
-        hmget(r->shader.uniforms, "u_projection"),
+        shget(r->shader.uniforms, "u_projection"),
         1,
         GL_FALSE,
         (const GLfloat *)&projection_matrix.raw
@@ -358,7 +363,6 @@ void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text
         };
 
         render_draw_rectangle_uv(r, area, uv, font->texture);
-        render_draw_rectangle(r, area, font->texture);
         pos.x += c->xadvance;
     }
 }

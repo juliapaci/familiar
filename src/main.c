@@ -68,8 +68,8 @@ int main(void) {
             render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
         render_frame_end(&renderer);
 
-        process_camera_input(window, &renderer.camera);
         process_general_input(window, &wireframe);
+        process_camera_input(window, &renderer.camera);
         camera_update(&renderer.camera, &renderer.shader);
 
         glfwSwapBuffers(window);

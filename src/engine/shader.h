@@ -8,9 +8,11 @@
 typedef struct {
     GLuint id;
     struct {
+        // NOTE: array types have a suffix of "[0]"
         char *key;  // name
         GLint value;// location
     } *uniforms; // needs to be a reference for `hm*`macros to work (without using opaque pointers on temporary hashmaps)
+                 // allocated in an arena
 } Shader;
 
 const char *_read_file(const char *file_path);  /// reads a file to a string

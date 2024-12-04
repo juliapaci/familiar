@@ -19,7 +19,7 @@
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", "-ggdb"
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "include")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-lstb"
+#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "include")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -46,7 +46,10 @@ void build_dep_glad(void) {
 }
 
 void build_dep_stb(void) {
-    // cant compile implementations in all of one file because of double implementations
+    FILE *impl = fopen(PATH(BUILD, "stb_implementations.c"), "w");
+    if(impl == NULL)
+        return;
+
     FOREACH_FILE_IN_DIR(file, PATH(THIRD_PARTY, "stb"), {
         if(file[0] == '.') // ".", ".."
             continue;
@@ -56,21 +59,15 @@ void build_dep_stb(void) {
         char *name = (char *)file;
         *(name + (strlen(name) - strlen(".h"))) = '\0';
 
-        const char *impl_name = CONCAT(name, "_implementation");
-        FILE *impl = fopen(PATH(BUILD, CONCAT(impl_name, ".c")), "w");
-        if(impl == NULL)
-            return;
-
         for(size_t i = 0; i < strlen(name); i++)
             name[i] = toupper(name[i]);
 
         fputs(CONCAT("#define ", name, "_IMPLEMENTATION\n"), impl);
         fputs(header, impl);
-        fclose(impl);
-
-        CMD("cc", CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, CONCAT(impl_name, ".o")), PATH(BUILD, CONCAT(impl_name, ".c")));
-        CMD("ar", "rcs", PATH(BUILD, "libstb.a"), PATH(BUILD, CONCAT(impl_name, ".o")));
     });
+    fclose(impl);
+
+    CMD("cc", CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, "stb.o"), PATH(BUILD, "stb_implementations.c"));
 }
 
 #define ENGINE_BUILD(translation_unit) \
