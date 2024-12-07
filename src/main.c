@@ -35,7 +35,6 @@ void free_entity(Entity *entity) {
 int main(void) {
     GLFWwindow *window = init_window("Familiar");
     if(window == NULL) return 1;
-    glEnable(GL_DEPTH_TEST);
 
     bool wireframe = false;
     Renderer renderer;
@@ -43,7 +42,7 @@ int main(void) {
     set_cam_callback(window, &renderer.camera);
 
     RenderFont font;
-    render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 30);
+    render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 10);
 
     Entity entity = {
         .texture    = render_texture_load_file("assets/awesomeface.png"),
@@ -60,12 +59,11 @@ int main(void) {
             entity.pos.x += 4 * delta_time;
 
         render_frame_begin(&renderer);
-            render_switch_projection(&renderer, PROJECTION_PERSPECTIVE);
+            render_switch_3d(&renderer);
             draw_entity(&renderer, &entity);
-            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
 
-            render_switch_projection(&renderer, PROJECTION_ORTHOGRAPHIC);
-            render_draw_text(&renderer, &font, (vec2s){0, 0}, "test");
+            render_switch_2d(&renderer);
+            render_draw_text(&renderer, &font, (vec2s){-10, 0}, "test");
         render_frame_end(&renderer);
 
         process_general_input(window, &wireframe);

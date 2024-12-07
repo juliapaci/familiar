@@ -72,6 +72,7 @@ void render_free(Renderer *renderer);
 // batch control
 void render_frame_begin(Renderer *renderer);
 void render_frame_end(Renderer *renderer);
+void render_frame_flush(Renderer *renderer);    // flushes current batch
 
 // perspective changes
 // NOTE: renders the current batch before proceeding
@@ -81,11 +82,13 @@ typedef enum {
     PROJECTION_ORTHOGRAPHIC
 } Projection;
 void render_switch_projection(Renderer *r, Projection projection);
+void render_switch_2d(Renderer *r);
+void render_switch_3d(Renderer *r);
 
 // Note: texture id is found in `a`
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture);
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture);
-void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture);
+void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 

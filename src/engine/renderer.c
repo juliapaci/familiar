@@ -1,7 +1,6 @@
 #include "renderer.h"
 
 #include <stb/stb_image.h>
-#include <stb/stb_ds.h>
 #include <string.h>
 
 void render_init(Renderer *r) {
@@ -72,9 +71,13 @@ void render_frame_end(Renderer *r) {
     glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
 }
 
-void render_switch_projection(Renderer *r, Projection projection) {
+void render_frame_flush(Renderer *r) {
     render_frame_end(r);
     render_frame_begin(r);
+}
+
+void render_switch_projection(Renderer *r, Projection projection) {
+    render_frame_flush(r);
 
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -93,8 +96,7 @@ void render_switch_projection(Renderer *r, Projection projection) {
                 viewport[2]/(2.0 * r->camera.fov),
                 -viewport[3]/(2.0 * r->camera.fov),
                 viewport[3]/(2.0 * r->camera.fov),
-                // TODO: make everything in scope somehow
-                -100.0, 100.0
+                -0.1f, 0.1f
             )
         ;
 
@@ -109,13 +111,39 @@ void render_switch_projection(Renderer *r, Projection projection) {
 
 }
 
+void render_switch_2d(Renderer *r) {
+    // projection change flushes flushes aswell
+    render_switch_projection(r, PROJECTION_ORTHOGRAPHIC);
+    const mat4s view = GLMS_MAT4_IDENTITY;
+    const mat4s model = GLMS_MAT4_IDENTITY;
+    glUniformMatrix4fv(
+        shget(r->shader.uniforms, "u_view"),
+        1,
+        GL_FALSE,
+        (const GLfloat *)&view.raw
+    );
+    glUniformMatrix4fv(
+        shget(r->shader.uniforms, "u_model"),
+        1,
+        GL_FALSE,
+        (const GLfloat *)&view.raw
+    );
+    glDisable(GL_DEPTH_TEST);
+}
+
+void render_switch_3d(Renderer *r) {
+    // flush
+    render_frame_flush(r);
+    glEnable(GL_DEPTH_TEST);
+    camera_update(&r->camera, &r->shader);
+}
+
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
     bool same_texture = texture == r->textures[r->texture_index];
 
     // flush batch
     if(r->triangle_count == MAX_TRIANGLES || r->texture_count > 8 || !same_texture) {
-        render_frame_end(r);
-        render_frame_begin(r);
+        render_frame_flush(r);
         if(r->texture_count > 8)
             r->texture_count = 0;
     }
@@ -147,7 +175,7 @@ void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex 
     render_push_triangle(r, b, c, d, texture);
 }
 
-void render_draw_rectangle_uv(Renderer *r, Rectangle uv, Rectangle rect, GLuint texture) {
+void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
     render_push_quad(
         r,
         (RenderVertex){
@@ -312,12 +340,11 @@ void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, f
     glBindTexture(GL_TEXTURE_2D, font->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     GLint swizzles[4] = {GL_ONE, GL_ONE, GL_ONE, GL_RED};
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzles);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, tmp_bitmap);
-    glGenerateMipmap(GL_TEXTURE_2D);
 
     font->scale = stbtt_ScaleForPixelHeight(&info, font_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, NULL);

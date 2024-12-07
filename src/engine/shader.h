@@ -22,4 +22,6 @@ bool _error_check_program(unsigned int program);/// checks (linking?) errors in 
 unsigned int shader_make(const char *vertex_path, const char *fragment_path); // builds the shader program
 void shader_update_locations(Shader *shader);
 
+// TODO: uniform update wrappers
+
 #endif // __SHADER_H__

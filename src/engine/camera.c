@@ -39,6 +39,8 @@ Camera camera_init(void) {
 }
 
 void camera_update(Camera *camera, Shader *shader) {
+    // glEnable(GL_DEPTH_TEST);
+
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const GLint width = viewport[2];
