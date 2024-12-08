@@ -8,15 +8,22 @@
 
 // TODO: maybe make debugging an argument
 #define DEBUG 1
+#if DEBUG==1
+#define OPTIMISATION "-ggdb"
 #define DEFINE_MACRO(name) "-D" #name "=" STRINGIFY(DEBUG)
 #define OPENGL_DEBUG_APP DEFINE_MACRO(OPENGL_DEBUG_APP)
+#else
+#define OPTIMISATION "-O3"
+#define OPENGL_DEBUG_APP ""
+#endif // DEBUG
+
 
 #define BUILD "build"
 #define ENGINE "engine"
 #define THIRD_PARTY "external"
 #define SRC "src"
 
-#define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", "-ggdb"
+#define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
 #define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "include")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
@@ -80,8 +87,9 @@ void build_dep_engine() {
     ENGINE_BUILD(shader);
     ENGINE_BUILD(camera);
     ENGINE_BUILD(renderer);
+    ENGINE_BUILD(animation);
 
-    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer);
+    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation);
 }
 
 void build_dependencies(void) {

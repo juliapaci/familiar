@@ -327,6 +327,7 @@ void render_texture_free(GLuint texture) {
 }
 
 void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size) {
+    // TODO: flip bitmap?
     uint8_t tmp_bitmap[512 * 512];
     stbtt_fontinfo info;
     stbtt_pack_context spc;
