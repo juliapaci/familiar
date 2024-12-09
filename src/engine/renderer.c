@@ -19,9 +19,9 @@ void render_init(Renderer *r) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, colour));
     glEnableVertexAttribArray(1);
-
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
     glEnableVertexAttribArray(2);
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_BYTE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, shape));
     glEnableVertexAttribArray(3);
 
     // shader
@@ -171,6 +171,7 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
 
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
     // TODO: triangle strip/fan or index buffer?
+    // TODO: implement index buffer so we only have to push 4 vertices
     render_push_triangle(r, a, b, c, texture);
     render_push_triangle(r, b, c, d, texture);
 }
@@ -182,21 +183,25 @@ void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint 
             .pos    = {rect.x, rect.y, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x, uv.y},
+            .shape  = 0
         },
         (RenderVertex){
             .pos    = {rect.x + rect.width, rect.y, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x + uv.width, uv.y}
+            .uv     = {uv.x + uv.width, uv.y},
+            .shape  = 0
         },
         (RenderVertex){
             .pos    = {rect.x, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x, uv.y + uv.height}
+            .uv     = {uv.x, uv.y + uv.height},
+            .shape  = 0
         },
         (RenderVertex){
             .pos    = {rect.x + rect.width, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x + uv.width, uv.y + uv.height}
+            .uv     = {uv.x + uv.width, uv.y + uv.height},
+            .shape  = 0
         },
         texture
     );
@@ -255,23 +260,27 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
             r,
             (RenderVertex){
                 .pos    = vertices[4*i + 0],
-                .uv     = {0, 0},
                 .colour = {1, 1, 1, 1},
+                .uv     = {0, 0},
+                .shape  = 1
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 1],
+                .colour = {1, 1, 1, 1},
                 .uv     = {1, 0},
-                .colour = {1, 1, 1, 1}
+                .shape  = 1
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 2],
+                .colour = {1, 1, 1, 1},
                 .uv     = {0, 1},
-                .colour = {1, 1, 1, 1}
+                .shape  = 1
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 3],
+                .colour = {1, 1, 1, 1},
                 .uv     = {1, 1},
-                .colour = {1, 1, 1, 1}
+                .shape  = 1
             },
             texture
         );

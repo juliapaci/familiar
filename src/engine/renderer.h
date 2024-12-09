@@ -13,11 +13,11 @@
 typedef struct {
     vec3s pos;
     vec4s colour;
-
     vec2s uv;
+    uint8_t shape; // kind
 } RenderVertex;
 
-// TODO: lookat useing TEXTURE_2D_ARRAY
+// TODO: lookat using TEXTURE_2D_ARRAY
 typedef struct {
     // OpenGL objects
     GLuint vao;
@@ -66,6 +66,13 @@ typedef struct {
     float depth;
 } Cube;
 
+typedef struct {
+    // centre of circle
+    float x;
+    float y;
+    float radius;
+} Circle;
+
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
@@ -93,7 +100,6 @@ void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 
 GLuint render_get_white_texture(void);
-
 GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);
 GLuint render_texture_load_file(const char *path);
 void render_texture_free(GLuint texture);

@@ -3,6 +3,8 @@ out vec4 frag_colour;
 
 in vec4 v_colour;
 in vec2 v_uv;
+flat in uint v_shape;
+in vec4 v_pos;
 
 uniform int u_texture_index;
 
@@ -11,4 +13,9 @@ uniform sampler2D u_textures[8];
 
 void main() {
     frag_colour = v_colour * texture(u_textures[u_texture_index], v_uv);
+
+    // circle
+    if(v_shape == 2) {
+
+    }
 };
