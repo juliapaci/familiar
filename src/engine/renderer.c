@@ -10,6 +10,10 @@ void render_init(Renderer *r) {
     glGenVertexArrays(1, &r->vao);
     glBindVertexArray(r->vao);
 
+    glGenBuffers(1, &r->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+
     glGenBuffers(1, &r->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
@@ -21,8 +25,6 @@ void render_init(Renderer *r) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
     glEnableVertexAttribArray(2);
-    glVertexAttribIPointer(3, 1, GL_UNSIGNED_BYTE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, shape));
-    glEnableVertexAttribArray(3);
 
     // shader
     r->shader.id = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
@@ -31,9 +33,11 @@ void render_init(Renderer *r) {
     shader_update_locations(&r->shader);
     glUseProgram(r->shader.id);
 
+    // camera
     r->camera = camera_init();
     camera_update(&r->camera, &r->shader);
 
+    // textures
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     glUniform1iv(shget(r->shader.uniforms, "u_textures[0]"), 8, textures);
@@ -47,6 +51,7 @@ void render_init(Renderer *r) {
 
 void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->vbo);
+    glDeleteBuffers(1, &r->ibo);
     glDeleteVertexArrays(1, &r->vao);
     glDeleteProgram(r->shader.id);
 
@@ -59,16 +64,19 @@ void render_frame_begin(Renderer *r) {
 }
 
 void render_frame_end(Renderer *r) {
+    // current batch's texture
     glActiveTexture(GL_TEXTURE0 + r->texture_index);
     glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
+    glUseProgram(r->shader.id);
     glUniform1i(shget(r->shader.uniforms, "u_texture_index"), r->texture_index);
 
-    glUseProgram(r->shader.id);
+    // update buffers
     glBindVertexArray(r->vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
 
-    glDrawArrays(GL_TRIANGLES, 0, r->triangle_count * 3);
+    // draw call
+    glDrawElements(GL_TRIANGLES, r->triangle_count * 3, GL_UNSIGNED_INT, NULL);
 }
 
 void render_frame_flush(Renderer *r) {
@@ -138,6 +146,7 @@ void render_switch_3d(Renderer *r) {
     camera_update(&r->camera, &r->shader);
 }
 
+// TODO: abstract a triangle or make quads the primitive shape so that we can update the index buffer correctly for triangles
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
     bool same_texture = texture == r->textures[r->texture_index];
 
@@ -155,6 +164,7 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
             if(r->textures[i] == texture) {
                 exists = true;
                 r->texture_index = i;
+                break;
             }
         }
 
@@ -170,8 +180,22 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
 }
 
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
-    // TODO: triangle strip/fan or index buffer?
-    // TODO: implement index buffer so we only have to push 4 vertices
+    // TODO: triangle strip/fan?
+
+    const size_t offset = r->triangle_count * 3;
+    const GLuint indices[2 * 3] = {
+        offset + 0, offset + 1, offset + 2,
+        offset + 2, offset + 3, offset + 0
+    };
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
+    glBufferSubData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        offset * sizeof(GLuint),
+        sizeof(indices),
+        indices
+    );
+
     render_push_triangle(r, a, b, c, texture);
     render_push_triangle(r, b, c, d, texture);
 }
@@ -182,26 +206,22 @@ void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint 
         (RenderVertex){
             .pos    = {rect.x, rect.y, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x, uv.y},
-            .shape  = 0
+            .uv     = {uv.x, uv.y}
         },
         (RenderVertex){
             .pos    = {rect.x + rect.width, rect.y, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x + uv.width, uv.y},
-            .shape  = 0
+            .uv     = {uv.x + uv.width, uv.y}
         },
         (RenderVertex){
             .pos    = {rect.x, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x, uv.y + uv.height},
-            .shape  = 0
+            .uv     = {uv.x, uv.y + uv.height}
         },
         (RenderVertex){
             .pos    = {rect.x + rect.width, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
-            .uv     = {uv.x + uv.width, uv.y + uv.height},
-            .shape  = 0
+            .uv     = {uv.x + uv.width, uv.y + uv.height}
         },
         texture
     );
@@ -261,26 +281,22 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
             (RenderVertex){
                 .pos    = vertices[4*i + 0],
                 .colour = {1, 1, 1, 1},
-                .uv     = {0, 0},
-                .shape  = 1
+                .uv     = {0, 0}
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 1],
                 .colour = {1, 1, 1, 1},
-                .uv     = {1, 0},
-                .shape  = 1
+                .uv     = {1, 0}
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 2],
                 .colour = {1, 1, 1, 1},
-                .uv     = {0, 1},
-                .shape  = 1
+                .uv     = {0, 1}
             },
             (RenderVertex){
                 .pos    = vertices[4*i + 3],
                 .colour = {1, 1, 1, 1},
-                .uv     = {1, 1},
-                .shape  = 1
+                .uv     = {1, 1}
             },
             texture
         );

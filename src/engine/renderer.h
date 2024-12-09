@@ -9,18 +9,19 @@
 
 #define MAX_TRIANGLES   2048
 #define MAX_VERTICES    MAX_TRIANGLES * 3
+#define MAX_INDICES     MAX_VERTICES
 
 typedef struct {
     vec3s pos;
     vec4s colour;
     vec2s uv;
-    uint8_t shape; // kind
 } RenderVertex;
 
 // TODO: lookat using TEXTURE_2D_ARRAY
 typedef struct {
     // OpenGL objects
     GLuint vao;
+    GLuint ibo;
     GLuint vbo;
 
     // shader

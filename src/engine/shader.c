@@ -88,12 +88,11 @@ void shader_update_locations(Shader *shader) {
         GLint values[3]; // type, size, location
         glGetProgramResourceiv(shader->id, GL_UNIFORM, i, 3, properties, 3, NULL, values);
 
-        char *name = malloc(values[1]);
+        char name[values[1]];
         glGetProgramResourceName(shader->id, GL_UNIFORM, i, values[1], NULL, name);
 
         // TODO: type check to remove array "[0]" suffix
         // if(values[0] == GL_)
         shput(shader->uniforms, name, values[2]);
-        free(name);
     }
 }
