@@ -7,9 +7,9 @@
 #include <stb/stb_truetype.h>
 #include <engine/shader.h>
 
-#define MAX_TRIANGLES   2048
-#define MAX_VERTICES    MAX_TRIANGLES * 3
-#define MAX_INDICES     MAX_VERTICES
+#define MAX_QUADS       1024
+#define MAX_VERTICES    MAX_QUADS * 4
+#define MAX_INDICES     MAX_QUADS * 6
 
 typedef struct {
     vec3s pos;
@@ -30,9 +30,12 @@ typedef struct {
     // camera
     Camera camera;
 
-    // Triangle data (cpu mirror of gpu buffer)
-    RenderVertex triangle_data[MAX_VERTICES];
-    uint16_t triangle_count;
+    // cpu mirror of gpu buffers
+    GLuint index_buffer[MAX_INDICES];
+    RenderVertex vertex_buffer[MAX_VERTICES];
+    // TODO: theres definantly a way to derive index_count from vertex_count
+    uint16_t index_count;
+    uint16_t vertex_count;
 
     // Current texture for batching textures in independant draw calls
     // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
@@ -94,8 +97,11 @@ void render_switch_2d(Renderer *r);
 void render_switch_3d(Renderer *r);
 
 // Note: texture id is found in `a`
+void render_populate_index_buffer(Renderer *r, size_t count);
+void render_submit_batch(Renderer *r, GLuint texture); // update batch information like current texture and flushes the batch if certain criteria is met
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture);
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture);
+
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);

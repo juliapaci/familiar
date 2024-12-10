@@ -53,6 +53,7 @@ void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->vbo);
     glDeleteBuffers(1, &r->ibo);
     glDeleteVertexArrays(1, &r->vao);
+
     glDeleteProgram(r->shader.id);
 
     glDeleteTextures(1, &r->textures[0]); // white texture
@@ -60,7 +61,8 @@ void render_free(Renderer *r) {
 }
 
 void render_frame_begin(Renderer *r) {
-    r->triangle_count = 0;
+    r->vertex_count = 0;
+    r->index_count = 0;
 }
 
 void render_frame_end(Renderer *r) {
@@ -73,10 +75,26 @@ void render_frame_end(Renderer *r) {
     // update buffers
     glBindVertexArray(r->vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, r->triangle_count * 3 * sizeof(RenderVertex), r->triangle_data);
+    glBufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        r->vertex_count * sizeof(RenderVertex),
+        r->vertex_buffer
+    );
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
+    glBufferSubData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        0,
+        r->index_count * sizeof(GLuint),
+        r->index_buffer
+    );
+    printf("\nnew frame\n");
+    for(size_t i = 0; i < r->index_count/3; i++)
+        printf("%d, %d, %d\n", r->index_buffer[i*3 + 0], r->index_buffer[i*3 + 1], r->index_buffer[i*3 + 2]);
 
     // draw call
-    glDrawElements(GL_TRIANGLES, r->triangle_count * 3, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, r->vertex_count * 3 * sizeof(RenderVertex), GL_UNSIGNED_INT, NULL);
 }
 
 void render_frame_flush(Renderer *r) {
@@ -146,12 +164,11 @@ void render_switch_3d(Renderer *r) {
     camera_update(&r->camera, &r->shader);
 }
 
-// TODO: abstract a triangle or make quads the primitive shape so that we can update the index buffer correctly for triangles
-void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
-    bool same_texture = texture == r->textures[r->texture_index];
+void render_submit_batch(Renderer *r, GLuint texture) {
+    const bool same_texture = texture == r->textures[r->texture_index];
 
     // flush batch
-    if(r->triangle_count == MAX_TRIANGLES || r->texture_count > 8 || !same_texture) {
+    if(r->vertex_count == MAX_VERTICES || r->texture_count > 8 || !same_texture) {
         render_frame_flush(r);
         if(r->texture_count > 8)
             r->texture_count = 0;
@@ -171,33 +188,57 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
         if(!exists)
             r->textures[r->texture_count++] = texture;
     }
+}
 
+// TODO: maybe generalise all of this with variadic functions for auto index and vertex buffer filling
 
-    const size_t offset = r->triangle_count++ * 3;
-    r->triangle_data[offset + 0] = a;
-    r->triangle_data[offset + 1] = b;
-    r->triangle_data[offset + 2] = c;
+void render_populate_index_buffer(Renderer *r, size_t count) {
+    // const size_t index = r->vertex_count * 2;
+    // for(size_t i = 0; i < count; i++) {
+    //     r->index_buffer[r->vertex_count] =
+    // }
+}
+
+void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
+    // 0 1 2
+    // 3 4 5
+    // ...
+    const size_t index = r->vertex_count;
+    const GLuint indices[1 * 3] = {
+        index + 0, index + 1, index + 2
+    };
+    memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
+    r->index_count += 3;
+
+    render_submit_batch(r, texture);
+    const size_t offset = r->vertex_count;
+    r->vertex_buffer[offset + 0] = a;
+    r->vertex_buffer[offset + 1] = b;
+    r->vertex_buffer[offset + 2] = c;
+    r->vertex_count += 3;
 }
 
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
     // TODO: triangle strip/fan?
 
-    const size_t offset = r->triangle_count * 3;
+    // 0 1 2, 1 2 3
+    // 4 5 6, 5 6 7
+    // ...
+    const size_t index = r->vertex_count;
     const GLuint indices[2 * 3] = {
-        offset + 0, offset + 1, offset + 2,
-        offset + 2, offset + 3, offset + 0
+        index + 0, index + 1, index + 2,
+        index + 1, index + 2, index + 3
     };
+    memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
+    r->index_count += 6;
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
-    glBufferSubData(
-        GL_ELEMENT_ARRAY_BUFFER,
-        offset * sizeof(GLuint),
-        sizeof(indices),
-        indices
-    );
-
-    render_push_triangle(r, a, b, c, texture);
-    render_push_triangle(r, b, c, d, texture);
+    render_submit_batch(r, texture);
+    const size_t offset = r->vertex_count;
+    r->vertex_buffer[offset + 0] = a;
+    r->vertex_buffer[offset + 1] = b;
+    r->vertex_buffer[offset + 2] = c;
+    r->vertex_buffer[offset + 3] = d;
+    r->vertex_count += 4;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
