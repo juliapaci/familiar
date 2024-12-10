@@ -33,7 +33,7 @@ void free_entity(Entity *entity) {
 }
 
 int main(void) {
-    GLFWwindow *window = init_window("Familiar");
+    GLFWwindow *window = init_window("Familiar example");
     if(window == NULL) return 1;
 
     bool wireframe = false;
@@ -60,10 +60,12 @@ int main(void) {
 
         render_frame_begin(&renderer);
             render_switch_3d(&renderer);
-            draw_entity(&renderer, &entity);
+            // draw_entity(&renderer, &entity);
+
+            render_push_triangle(&renderer, (RenderVertex){.pos = {entity.pos.x, 0, 0}, .colour = {1, 1, 1, 1}}, (RenderVertex){.pos = {10, 0, 0}, .colour = {1, 1, 1, 1}}, (RenderVertex){.pos = {0, 10, 0}, .colour = {1, 1, 1, 1}}, 1);
 
             render_switch_2d(&renderer);
-            render_draw_text(&renderer, &font, (vec2s){-10, 0}, "test");
+            render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
         render_frame_end(&renderer);
 
         process_general_input(window, &wireframe);

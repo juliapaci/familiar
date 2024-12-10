@@ -97,7 +97,7 @@ void render_switch_2d(Renderer *r);
 void render_switch_3d(Renderer *r);
 
 // Note: texture id is found in `a`
-void render_populate_index_buffer(Renderer *r, size_t count);
+void render_populate_index_buffer(Renderer *r, size_t index_count);
 void render_submit_batch(Renderer *r, GLuint texture); // update batch information like current texture and flushes the batch if certain criteria is met
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture);
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture);
@@ -105,6 +105,7 @@ void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
+void render_draw_circle(Renderer *r, Circle circle, GLuint texture);
 
 GLuint render_get_white_texture(void);
 GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);

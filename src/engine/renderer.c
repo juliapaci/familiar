@@ -89,12 +89,13 @@ void render_frame_end(Renderer *r) {
         r->index_count * sizeof(GLuint),
         r->index_buffer
     );
-    printf("\nnew frame\n");
+
+    printf("new frame v %d, i %d, t %d\n", r->vertex_count, r->index_count, r->texture_count);
     for(size_t i = 0; i < r->index_count/3; i++)
         printf("%d, %d, %d\n", r->index_buffer[i*3 + 0], r->index_buffer[i*3 + 1], r->index_buffer[i*3 + 2]);
 
     // draw call
-    glDrawElements(GL_TRIANGLES, r->vertex_count * 3 * sizeof(RenderVertex), GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, r->vertex_count * sizeof(RenderVertex), GL_UNSIGNED_INT, NULL);
 }
 
 void render_frame_flush(Renderer *r) {
@@ -140,6 +141,7 @@ void render_switch_projection(Renderer *r, Projection projection) {
 void render_switch_2d(Renderer *r) {
     // projection change flushes flushes aswell
     render_switch_projection(r, PROJECTION_ORTHOGRAPHIC);
+    glDisable(GL_DEPTH_TEST);
     const mat4s view = GLMS_MAT4_IDENTITY;
     const mat4s model = GLMS_MAT4_IDENTITY;
     glUniformMatrix4fv(
@@ -154,7 +156,6 @@ void render_switch_2d(Renderer *r) {
         GL_FALSE,
         (const GLfloat *)&view.raw
     );
-    glDisable(GL_DEPTH_TEST);
 }
 
 void render_switch_3d(Renderer *r) {
@@ -192,14 +193,20 @@ void render_submit_batch(Renderer *r, GLuint texture) {
 
 // TODO: maybe generalise all of this with variadic functions for auto index and vertex buffer filling
 
-void render_populate_index_buffer(Renderer *r, size_t count) {
-    // const size_t index = r->vertex_count * 2;
-    // for(size_t i = 0; i < count; i++) {
-    //     r->index_buffer[r->vertex_count] =
+void render_populate_index_buffer(Renderer *r, size_t index_count) {
+    // const size_t index = r->vertex_count;
+    // GLuint indices[index_count];
+    // for(size_t i = 0; i < index_count; i++) {
+    //     indices[i + 0] = index + i;
     // }
+    //
+    // memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
+    // r->index_count += index_count;
 }
 
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
+    render_submit_batch(r, texture);
+
     // 0 1 2
     // 3 4 5
     // ...
@@ -210,7 +217,6 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
     memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
     r->index_count += 3;
 
-    render_submit_batch(r, texture);
     const size_t offset = r->vertex_count;
     r->vertex_buffer[offset + 0] = a;
     r->vertex_buffer[offset + 1] = b;
@@ -219,6 +225,7 @@ void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVer
 }
 
 void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
+    render_submit_batch(r, texture);
     // TODO: triangle strip/fan?
 
     // 0 1 2, 1 2 3
@@ -232,7 +239,6 @@ void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex 
     memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
     r->index_count += 6;
 
-    render_submit_batch(r, texture);
     const size_t offset = r->vertex_count;
     r->vertex_buffer[offset + 0] = a;
     r->vertex_buffer[offset + 1] = b;
@@ -271,13 +277,13 @@ void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint 
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture) {
     render_draw_rectangle_uv(
         r,
+        rect,
         (Rectangle){
             .x = 0,
             .y = 0,
             .width = 1,
             .height = 1
         },
-        rect,
         texture
     );
 }
@@ -342,6 +348,10 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
             texture
         );
     }
+}
+
+void render_draw_circle(Renderer *r, Circle circle, GLuint texture) {
+    // j
 }
 
 GLuint _white_texture = UINT32_MAX;
