@@ -1,6 +1,7 @@
 #ifndef __ANIMATION_H__
 #define __ANIMATION_H__
 // define `ANIMATION_UTILITIES` for utility functions like `lerp`
+// define `ANIMATION_FLOW` for procedural animation
 
 // NOTE: will probably reimplement in another language for better generic support since void *, macros, and metaprogramming is annoying to use
 
@@ -8,7 +9,9 @@
 
 #include <stb/stb_ds.h>
 
-struct Object;
+// forward declarations
+struct Actor;
+struct Animation;
 
 // all timing is in 60 frames (1 (float) = 60 (frames))
 
@@ -16,49 +19,60 @@ typedef struct {
     float start;
     float end;
 
-    // function to act upon the object
-    // `t` should be normalised [0, 1]
-    void (*mutate_object)(struct Object *object, float t);
+    // function to act upon the actor
+    // `t` should be normalised [0, 1] as progress
+    void (*mutate_actor)(
+        struct Animation *animation,
+        struct Actor *actor,
+        float t,
+        void *extra_args
+    );
 } Action;
 
 // TODO: maybe an ecs for transform and other components
 // an animated entity
-typedef struct Object {
+typedef struct Actor {
     // actions will always be sorted by their start time
-    // actions[0] will always be lifetime of the object
+    // actions[0] will always be lifetime of the actor
     Action *actions; // stb dynamic array
 
-    // actor
+    // object
     // can be any renderer shape like rectangle or something
-    void *object;
+    void *actor;
     /* const */ ObjectKind kind; // type of object
-} Object;
+} Actor;
 
 // animation context
-typedef struct {
+typedef struct Animation {
     Renderer *renderer; // rendering context to draw stuff with
 
     float time;         // current time
     float duration;     // duration of animation
 
-    Object *objects;    // stb dynamic array
+    Actor *actors;      // stb dynamic array
 } Animation;
 
 // animation
 void animation_init(Animation *animation, Renderer *renderer);
 void animation_free(Animation *animation);
 
-void animation_render_object(Animation *animation, Object *object);
+void animation_render_actor(Animation *animation, Actor *actor);
 void animation_play(Animation *animation); // plays an animation frame
-void animation_object_play(Animation *animation, Object *object, float time); // plays animation frame
+void animation_actor_play(Animation *animation, Actor *actor, float time); // plays animation frame
+inline void animation_action_default(
+        struct Animation *animation,
+        struct Actor *actor,
+        float _t,
+        void *_extra_args
+) { animation_render_actor(animation, actor); };
 
-void animation_object_add(Animation *animation, void *object, const ObjectKind kind, float time);
-void animation_object_action_add(Object *object, Action action);
+void animation_actor_add(Animation *animation, void *actor, const ObjectKind kind, float time);
+void animation_actor_action_add(Actor *actor, Action action);
 
-// binary searches for placements for sorted actors
-size_t animation_object_place(Animation *animation, float time); // index of `animation`'s objects which `time` should sort into
-size_t animation_action_place(Object *object, float time); // index of `object`'s actions which `time` should sort into
-size_t *animation_active_actions(Object *object, float time); // index of the first action which `time` lies within
+// placements for sorted actors
+size_t animation_actor_place(Animation *animation, float time); // index of `animation`'s actors which `time` should sort into
+size_t animation_action_place(Actor *actor, float time); // index of `actor`'s actions which `time` should sort into
+size_t *animation_active_actions(Actor *actor, float time); // index of the first action which `time` lies within
 
 // animation utilities
 #ifdef ANIMATION_UTILITIES

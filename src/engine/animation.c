@@ -3,30 +3,30 @@
 void animation_init(Animation *animation, Renderer *renderer) {
     *animation = (Animation){.renderer = renderer, 0};
 
-    arrsetcap(animation->objects, 10);
+    arrsetcap(animation->actors, 10);
 }
 
 // NOTE: does not free animation.renderer
 void animation_free(Animation *animation) {
-    arrfree(animation->objects);
+    arrfree(animation->actors);
 }
 
-void animation_render_object(Animation *animation, Object *object) {
-    switch(object->kind) {
+void animation_render_actor(Animation *animation, Actor *actor) {
+    switch(actor->kind) {
         case OBJECT_TRIANGLE: {
 
         } break;
 
         case OBJECT_CIRCLE: {
-            render_draw_circle(animation->renderer, *(Circle *)object->object, 0);
+            render_draw_circle(animation->renderer, *(Circle *)actor->actor, 0);
         } break;
 
         case OBJECT_RECTANGLE: {
-            render_draw_rectangle(animation->renderer, *(Rectangle *)object->object, 0);
+            render_draw_rectangle(animation->renderer, *(Rectangle *)actor->actor, 0);
         } break;
 
         case OBJECT_CUBE: {
-            render_draw_cube(animation->renderer, *(Cube *)object->object, 0);
+            render_draw_cube(animation->renderer, *(Cube *)actor->actor, 0);
         } break;
 
         default: break;
@@ -38,103 +38,109 @@ void animation_play(Animation *animation) {
         return;
     animation->time++;
 
-    for(size_t i = 0; i < arrlen(animation->objects); i++)
-        animation_object_play(animation, &animation->objects[i], animation->time);
+    for(size_t i = 0; i < arrlen(animation->actors); i++)
+        animation_actor_play(animation, &animation->actors[i], animation->time);
 }
 
-void animation_object_play(Animation *animation, Object *object, float time) {
-    size_t *actions = animation_active_actions(object, time);
+extern void animation_action_default(struct Animation *animation, struct Actor *actor, float _t, void *_extra_args);
 
-    for(size_t i = 1; i < actions[0]; i++) // object->actions[0] will always be lifetime so we can just skip it
-        object->actions[i].mutate_object(
-            object,
-            (time - object->actions[i].start)/(object->actions[i].end - object->actions[i].start)
+void animation_actor_play(Animation *animation, Actor *actor, float time) {
+    size_t *actions = animation_active_actions(actor, time);
+
+    for(size_t i = 1; i < actions[0]; i++) // actor->actions[0] will always be lifetime so we can just skip it
+        actor->actions[i].mutate_actor(
+            animation,
+            actor,
+            (time - actor->actions[i].start)/(actor->actions[i].end - actor->actions[i].start),
+            NULL
         );
 
     free(actions);
-
-    animation_render_object(animation, object);
 }
 
-void animation_object_add(
+void animation_actor_add(
     Animation *animation,
-    void *actor,
+    void *object,
     const ObjectKind kind,
     float time
 ) {
-    Object object = (Object){
-        .object = actor,
+    Actor actor = (Actor){
+        .actor = object,
         .kind = kind
     };
-    arrsetcap(object.actions, 3);
+    arrsetcap(actor.actions, 3);
 
-    // actions[0] is always the lifetime of the object
-    const Action object_action = (Action){
+    // actions[0] is always the lifetime of the actor
+    const Action default_action = (Action){
         .start = time,
         .end = time,
-        .mutate_object = NULL
+        .mutate_actor = animation_action_default
     };
-    arrput(object.actions, object_action);
+    arrput(actor.actions, default_action);
 
-    const size_t index = animation_object_place(animation, time);
-    arrins(animation->objects, index, object);
+    const size_t index = animation_actor_place(animation, time);
+    arrins(animation->actors, index, actor);
 }
 
-void animation_object_action_add(Object *object, Action action) {
-    const size_t index = animation_action_place(object, action.start);
-    arrins(object->actions, index, action);
+void animation_actor_action_add(Actor *actor, Action action) {
+    const size_t index = animation_action_place(actor, action.start);
+    arrins(actor->actions, index, action);
 }
 
-size_t animation_object_place(Animation *animation, float time) {
-    size_t l = 0;
-    size_t r = arrlen(animation->objects) - 1;
-    while(l < r) {
-        const size_t m = (r - l)/2;
-        const float object = animation->objects[m].actions[0].start;
+#define ANIMATION_FLOW
+#ifndef ANIMATION_FLOW
 
-        if(time > object)
-            l = m;
-        else if(time < object)
-            r = m;
-        else if(time == object) {
-            return m;
-        }
-    }
+// TODO: macro is easier but a generic function would be more safe
+#define _ANIMATION_BINARY_SEARCH(array, getter, target) do {        \
+    size_t l = 0;                                                   \
+    size_t r = arrlen(array) - 1;                                   \
+    while(l < r) {                                                  \
+        const size_t m = (r + l)/2;                                 \
+        const float element = getter;                               \
+                                                                    \
+        if(time > element)                                          \
+            l = m;                                                  \
+        else if(time < element)                                     \
+            r = m;                                                  \
+        else if(time == element)                                    \
+            return m + 1;                                           \
+    }                                                               \
+                                                                    \
+    return l + 1;                                                   \
+} while(0)
 
-    return l;
+size_t animation_actor_place(Animation *animation, float time) {
+    _ANIMATION_BINARY_SEARCH(animation->actors, animation->actors[m].actions[0].start, time);
 }
 
-size_t animation_action_place(Object *object, float time) {
-    size_t l = 0;
-    size_t r = arrlen(object->actions) - 1;
-    while(l < r) {
-        const size_t m = (r - l)/2;
-        const float action = object->actions[m].start;
-
-        if(time > action)
-            l = m;
-        else if(time < action)
-            r = m;
-        else if(time == action) {
-            return m;
-        }
-    };
-
-    return l;
+size_t animation_action_place(Actor *actor, float time) {
+    _ANIMATION_BINARY_SEARCH(actor->actions, actor->actions[m].start, time);
 }
+
+#else   // defined ANIMATION_FLOW
+
+size_t animation_actor_place(Animation *animation, float _time) {
+    return arrlen(animation->actors);
+}
+
+size_t animation_action_place(Actor *actor, float _time) {
+    return arrlen(actor->actions);
+}
+
+#endif  // ANIMATION_FLOW
 
 // needs to be freed
 // first size_t is the amount of elements
-size_t *animation_active_actions(Object *object, float time) {
-    const size_t start = animation_action_place(object, time);
+size_t *animation_active_actions(Actor *actor, float time) {
+    const size_t start = animation_action_place(actor, time);
     size_t end;
 
-    size_t buffer[arrlen(object->actions)];
+    size_t buffer[arrlen(actor->actions)];
     buffer[0] = start;
     for(end = start + 1;
-        end < arrlen(object->actions) &&
-        time >= object->actions[end].start &&
-        time <= object->actions[end].end;
+        end < arrlen(actor->actions) &&
+        time >= actor->actions[end].start &&
+        time <= actor->actions[end].end;
         end++
     )
         buffer[end-start] = end;
@@ -144,6 +150,8 @@ size_t *animation_active_actions(Object *object, float time) {
     memcpy(elements + 1, buffer, end-start);
     return elements;
 }
+
+// utilities
 
 #ifdef ANIMATION_UTILITIES
 
