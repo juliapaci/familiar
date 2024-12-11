@@ -13,16 +13,20 @@ void animation_free(Animation *animation) {
 
 void animation_render_object(Animation *animation, Object *object) {
     switch(object->kind) {
+        case OBJECT_TRIANGLE: {
+
+        } break;
+
+        case OBJECT_CIRCLE: {
+            render_draw_circle(animation->renderer, *(Circle *)object->object, 0);
+        } break;
+
         case OBJECT_RECTANGLE: {
             render_draw_rectangle(animation->renderer, *(Rectangle *)object->object, 0);
         } break;
 
         case OBJECT_CUBE: {
             render_draw_cube(animation->renderer, *(Cube *)object->object, 0);
-        } break;
-
-        case OBJECT_CIRCLE: {
-            render_draw_circle(animation->renderer, *(Circle *)object->object, 0);
         } break;
 
         default: break;
@@ -41,7 +45,7 @@ void animation_play(Animation *animation) {
 void animation_object_play(Animation *animation, Object *object, float time) {
     size_t *actions = animation_active_actions(object, time);
 
-    for(size_t i = 0; i < actions[0]; i++)
+    for(size_t i = 1; i < actions[0]; i++) // object->actions[0] will always be lifetime so we can just skip it
         object->actions[i].mutate_object(
             object,
             (time - object->actions[i].start)/(object->actions[i].end - object->actions[i].start)

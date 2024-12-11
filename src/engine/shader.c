@@ -3,6 +3,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void shader_init(Shader *shader, const char *vertex_path, const char *fragment_path) {
+    *shader = (Shader){0};
+
+    shader->id = shader_make(vertex_path, fragment_path);
+    sh_new_arena(shader->uniforms);
+    shdefault(shader->uniforms, -1);
+    shader_update_locations(shader);
+    glUseProgram(shader->id);
+}
+
+void shader_free(Shader *shader) {
+    glDeleteProgram(shader->id);
+    shfree(shader->uniforms);
+}
+
 const char *_read_file(const char *file_path) {
     FILE *file = fopen(file_path, "rb");
     if(file == NULL)
@@ -52,7 +67,15 @@ bool _error_check_program(unsigned int program) {
 
 unsigned int shader_make(const char *vertex_path, const char *fragment_path) {
     const char *vertex_source = _read_file(vertex_path);
+    if(vertex_source == NULL) {
+        fprintf(stderr, "cannot find vertex shader \"%s\"", vertex_path);
+        return 0;
+    }
     const char *fragment_source = _read_file(fragment_path);
+    if(fragment_source == NULL) {
+        fprintf(stderr, "cannot find fragment shader \"%s\"", fragment_path);
+        return 0;
+    }
 
     unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
     unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);

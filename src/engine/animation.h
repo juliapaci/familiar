@@ -21,12 +21,6 @@ typedef struct {
     void (*mutate_object)(struct Object *object, float t);
 } Action;
 
-typedef enum {
-    OBJECT_RECTANGLE,
-    OBJECT_CUBE,
-    OBJECT_CIRCLE
-} ObjectKind;
-
 // TODO: maybe an ecs for transform and other components
 // an animated entity
 typedef struct Object {

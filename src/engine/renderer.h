@@ -11,6 +11,19 @@
 #define MAX_VERTICES    MAX_QUADS * 4
 #define MAX_INDICES     MAX_QUADS * 6
 
+#define SHADER_PATH "src/engine/shaders/"
+#define TRIANGLE_VS SHADER_PATH "triangle.vs"
+#define TRIANGLE_FS SHADER_PATH "triangle.fs"
+#define CIRCLE_VS   SHADER_PATH "circle.vs"
+#define CIRCLE_FS   SHADER_PATH "circle.fs"
+
+typedef enum {
+    OBJECT_TRIANGLE,
+    OBJECT_CIRCLE,
+    OBJECT_RECTANGLE,
+    OBJECT_CUBE
+} ObjectKind;
+
 typedef struct {
     vec3s pos;
     vec4s colour;
@@ -24,8 +37,11 @@ typedef struct {
     GLuint ibo;
     GLuint vbo;
 
-    // shader
-    Shader shader;
+    //
+    ObjectKind object_kind;
+
+    // shader (triangle, circle)
+    Shader shaders[2];
 
     // camera
     Camera camera;
@@ -80,10 +96,18 @@ typedef struct {
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
+// wrappers
+// TODO: not sure if we should restrict to amount of shaders (i.e. OBJECT_RECTANGLE doesnt have a shader but it should only be used for animation anyway so i dont know)
+inline Shader *render_shader(Renderer *r) { return &r->shaders[r->object_kind]; };
+
 // batch control
 void render_frame_begin(Renderer *renderer);
 void render_frame_end(Renderer *renderer);
 void render_frame_flush(Renderer *renderer);    // flushes current batch
+
+// shader and (maybe in the future) buffer changes
+void render_switch_triangle(Renderer *r);
+void render_switch_circle(Renderer *r);
 
 // perspective changes
 // NOTE: renders the current batch before proceeding

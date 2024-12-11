@@ -15,6 +15,9 @@ typedef struct {
                  // allocated in an arena
 } Shader;
 
+void shader_init(Shader *shader, const char *vertex_path, const char *fragment_path);
+void shader_free(Shader *shader);
+
 const char *_read_file(const char *file_path);  /// reads a file to a string
 bool _error_check_shader(unsigned int shader);  /// checks for errors in shader source
 bool _error_check_program(unsigned int program);/// checks (linking?) errors in shader program

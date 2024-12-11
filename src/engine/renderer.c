@@ -27,26 +27,24 @@ void render_init(Renderer *r) {
     glEnableVertexAttribArray(2);
 
     // shader
-    r->shader.id = shader_make("src/engine/shader.vs", "src/engine/shader.fs");
-    sh_new_arena(r->shader.uniforms);
-    shdefault(r->shader.uniforms, -1);
-    shader_update_locations(&r->shader);
-    glUseProgram(r->shader.id);
+    render_switch_triangle(r);
+    shader_init(&r->shaders[0], TRIANGLE_VS, TRIANGLE_FS);
+    shader_init(&r->shaders[1], CIRCLE_VS, CIRCLE_FS);
 
     // camera
     r->camera = camera_init();
-    camera_update(&r->camera, &r->shader);
+    camera_update(&r->camera, render_shader(r));
 
     // textures
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    glUniform1iv(shget(r->shader.uniforms, "u_textures[0]"), 8, textures);
+    glUniform1iv(shget(render_shader(r)->uniforms, "u_textures[0]"), 8, textures);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // default "no texture" as index 0
     r->textures[r->texture_count++] = render_get_white_texture();
-    glUniform1i(shget(r->shader.uniforms, "u_texture_index"), 0);
+    glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), 0);
 }
 
 void render_free(Renderer *r) {
@@ -54,11 +52,13 @@ void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->ibo);
     glDeleteVertexArrays(1, &r->vao);
 
-    glDeleteProgram(r->shader.id);
+    for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
+        shader_free(&r->shaders[i]);
 
     glDeleteTextures(1, &r->textures[0]); // white texture
-    shfree(r->shader.uniforms);
 }
+
+extern Shader *render_shader(Renderer *r);
 
 void render_frame_begin(Renderer *r) {
     r->vertex_count = 0;
@@ -69,8 +69,8 @@ void render_frame_end(Renderer *r) {
     // current batch's texture
     glActiveTexture(GL_TEXTURE0 + r->texture_index);
     glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
-    glUseProgram(r->shader.id);
-    glUniform1i(shget(r->shader.uniforms, "u_texture_index"), r->texture_index);
+    glUseProgram(render_shader(r)->id);
+    glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
 
     // update buffers
     glBindVertexArray(r->vao);
@@ -90,17 +90,27 @@ void render_frame_end(Renderer *r) {
         r->index_buffer
     );
 
-    printf("new frame v %d, i %d, t %d\n", r->vertex_count, r->index_count, r->texture_count);
-    for(size_t i = 0; i < r->index_count/3; i++)
-        printf("%d, %d, %d\n", r->index_buffer[i*3 + 0], r->index_buffer[i*3 + 1], r->index_buffer[i*3 + 2]);
-
     // draw call
     glDrawElements(GL_TRIANGLES, r->vertex_count * sizeof(RenderVertex), GL_UNSIGNED_INT, NULL);
 }
 
 void render_frame_flush(Renderer *r) {
+    if(r->vertex_count == 0)
+        return;
+
     render_frame_end(r);
     render_frame_begin(r);
+    r->texture_index = 0;
+}
+
+void render_switch_triangle(Renderer *r) {
+    render_frame_flush(r);
+    r->object_kind = OBJECT_TRIANGLE;
+}
+
+void render_switch_circle(Renderer *r) {
+    render_frame_flush(r);
+    r->object_kind = OBJECT_CIRCLE;
 }
 
 void render_switch_projection(Renderer *r, Projection projection) {
@@ -128,9 +138,9 @@ void render_switch_projection(Renderer *r, Projection projection) {
         ;
 
 
-    glUseProgram(r->shader.id);
+    glUseProgram(render_shader(r)->id);
     glUniformMatrix4fv(
-        shget(r->shader.uniforms, "u_projection"),
+        shget(render_shader(r)->uniforms, "u_projection"),
         1,
         GL_FALSE,
         (const GLfloat *)&projection_matrix.raw
@@ -145,13 +155,13 @@ void render_switch_2d(Renderer *r) {
     const mat4s view = GLMS_MAT4_IDENTITY;
     const mat4s model = GLMS_MAT4_IDENTITY;
     glUniformMatrix4fv(
-        shget(r->shader.uniforms, "u_view"),
+        shget(render_shader(r)->uniforms, "u_view"),
         1,
         GL_FALSE,
         (const GLfloat *)&view.raw
     );
     glUniformMatrix4fv(
-        shget(r->shader.uniforms, "u_model"),
+        shget(render_shader(r)->uniforms, "u_model"),
         1,
         GL_FALSE,
         (const GLfloat *)&view.raw
@@ -162,7 +172,7 @@ void render_switch_3d(Renderer *r) {
     // flush
     render_frame_flush(r);
     glEnable(GL_DEPTH_TEST);
-    camera_update(&r->camera, &r->shader);
+    camera_update(&r->camera, render_shader(r));
 }
 
 void render_submit_batch(Renderer *r, GLuint texture) {
@@ -207,6 +217,7 @@ void render_populate_index_buffer(Renderer *r, size_t index_count) {
 void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
     render_submit_batch(r, texture);
 
+    // TODO: fix triangles and rectangles (although they have correct indices) render weirdly
     // 0 1 2
     // 3 4 5
     // ...
@@ -351,7 +362,7 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
 }
 
 void render_draw_circle(Renderer *r, Circle circle, GLuint texture) {
-    // j
+
 }
 
 GLuint _white_texture = UINT32_MAX;
