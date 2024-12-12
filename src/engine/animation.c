@@ -18,7 +18,7 @@ void animation_render_actor(Animation *animation, Actor *actor) {
         } break;
 
         case OBJECT_CIRCLE: {
-            render_draw_circle(animation->renderer, *(Circle *)actor->actor, 0);
+            render_draw_circle(animation->renderer, *(Circle *)actor->actor);
         } break;
 
         case OBJECT_RECTANGLE: {

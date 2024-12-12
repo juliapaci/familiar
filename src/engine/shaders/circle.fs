@@ -3,12 +3,14 @@ out vec4 frag_colour;
 
 in vec4 v_colour;
 in vec2 v_uv;
+in vec3 v_pos;
 
-uniform int u_texture_index;
-
-// TODO: maybe switch to sampler2DArray
-uniform sampler2D u_textures[8];
-
+// thanks to https://www.youtube.com/watch?v=VEnglRKNHjU
 void main() {
-    frag_colour = v_colour * texture(u_textures[u_texture_index], v_uv);
+    // square both sides to avoid an unnecessary sqrt
+    // length(a) = a.a = ||a||^2
+    // 1 = 1^2
+    if(dot(v_pos, v_pos) > 1)
+        discard;
+    frag_colour = v_colour;
 };

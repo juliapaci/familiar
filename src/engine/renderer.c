@@ -7,33 +7,54 @@ void render_init(Renderer *r) {
     *r = (Renderer){0};
 
     // initialise buffers
-    glGenVertexArrays(1, &r->vao);
-    glBindVertexArray(r->vao);
+    // triangle
+    glGenVertexArrays(1, &r->triangle.vao);
+    glBindVertexArray(r->triangle.vao);
 
-    glGenBuffers(1, &r->ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
+    glGenBuffers(1, &r->triangle.ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->triangle.ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &r->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertex), NULL, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &r->triangle.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
 
     // vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, pos));
+    // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader io
+    // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, uv));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, colour));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void *)offsetof(RenderVertex, uv));
     glEnableVertexAttribArray(2);
+
+    // circle
+    glGenVertexArrays(1, &r->circle.vao);
+    glBindVertexArray(r->circle.vao);
+
+    glGenBuffers(1, &r->circle.ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_VERTICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &r->circle.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, pos));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, colour));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, radius));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, index));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     // shader
     render_switch_triangle(r);
-    shader_init(&r->shaders[0], TRIANGLE_VS, TRIANGLE_FS);
-    shader_init(&r->shaders[1], CIRCLE_VS, CIRCLE_FS);
-
-    // camera
-    r->camera = camera_init();
-    camera_update(&r->camera, render_shader(r));
+    shader_init(&r->shaders[OBJECT_TRIANGLE], TRIANGLE_VS, TRIANGLE_FS);
+    shader_init(&r->shaders[OBJECT_CIRCLE], CIRCLE_VS, CIRCLE_FS);
+    glUseProgram(render_shader(r)->id);
 
     // textures
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
@@ -45,12 +66,20 @@ void render_init(Renderer *r) {
     // default "no texture" as index 0
     r->textures[r->texture_count++] = render_get_white_texture();
     glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), 0);
+
+    // camera
+    r->camera = camera_init();
+    camera_update(&r->camera, render_shader(r));
 }
 
 void render_free(Renderer *r) {
-    glDeleteBuffers(1, &r->vbo);
-    glDeleteBuffers(1, &r->ibo);
-    glDeleteVertexArrays(1, &r->vao);
+    glDeleteBuffers(1, &r->triangle.vbo);
+    glDeleteBuffers(1, &r->triangle.ibo);
+    glDeleteVertexArrays(1, &r->triangle.vao);
+
+    glDeleteBuffers(1, &r->circle.vbo);
+    glDeleteBuffers(1, &r->circle.ibo);
+    glDeleteVertexArrays(1, &r->circle.vao);
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
         shader_free(&r->shaders[i]);
@@ -61,41 +90,87 @@ void render_free(Renderer *r) {
 extern Shader *render_shader(Renderer *r);
 
 void render_frame_begin(Renderer *r) {
-    r->vertex_count = 0;
-    r->index_count = 0;
+    r->triangle.vertex_count = 0;
+    r->triangle.index_count = 0;
+    r->circle.vertex_count = 0;
 }
 
 void render_frame_end(Renderer *r) {
-    // current batch's texture
-    glActiveTexture(GL_TEXTURE0 + r->texture_index);
-    glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
     glUseProgram(render_shader(r)->id);
-    glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
+    switch(r->object_kind) {
+        case OBJECT_TRIANGLE: {
+            // current batch's texture
+            glActiveTexture(GL_TEXTURE0 + r->texture_index);
+            glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
+            glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
 
-    // update buffers
-    glBindVertexArray(r->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-    glBufferSubData(
-        GL_ARRAY_BUFFER,
-        0,
-        r->vertex_count * sizeof(RenderVertex),
-        r->vertex_buffer
-    );
+            // buffer updates and draw calls
+            // triangle
+            glBindVertexArray(r->triangle.vao);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->ibo);
-    glBufferSubData(
-        GL_ELEMENT_ARRAY_BUFFER,
-        0,
-        r->index_count * sizeof(GLuint),
-        r->index_buffer
-    );
+            glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
+            glBufferSubData(
+                GL_ARRAY_BUFFER,
+                0,
+                r->triangle.vertex_count * sizeof(RenderVertexTriangle),
+                r->triangle.vertex_buffer
+            );
 
-    // draw call
-    glDrawElements(GL_TRIANGLES, r->vertex_count * sizeof(RenderVertex), GL_UNSIGNED_INT, NULL);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->triangle.ibo);
+            glBufferSubData(
+                GL_ELEMENT_ARRAY_BUFFER,
+                0,
+                r->triangle.index_count * sizeof(GLuint),
+                r->triangle.index_buffer
+            );
+
+            glDrawElements(
+                GL_TRIANGLES,
+                r->triangle.vertex_count * sizeof(RenderVertexTriangle),
+                GL_UNSIGNED_INT,
+                NULL
+            );
+        } break;
+
+        case OBJECT_CIRCLE: {
+            glBindVertexArray(r->circle.vao);
+            glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
+            glBufferSubData(
+                GL_ARRAY_BUFFER,
+                0,
+                r->circle.vertex_count * sizeof(RenderVertexCircle),
+                r->circle.vertex_buffer
+            );
+
+            // 0, 1, 2
+            // 3, 4, 5
+            // ...
+            // TODO: instancing?
+            GLuint indices[r->circle.vertex_count];
+            for(size_t i = 0; i < r->circle.vertex_count; i++)
+                indices[i] = i;
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
+            glBufferSubData(
+                GL_ELEMENT_ARRAY_BUFFER,
+                0,
+                sizeof(indices),
+                indices
+            );
+
+            glDrawElements(
+                GL_TRIANGLES,
+                r->circle.vertex_count * sizeof(RenderVertexCircle),
+                GL_UNSIGNED_INT,
+                NULL
+            );
+        } break;
+
+        default: return;
+    }
 }
 
 void render_frame_flush(Renderer *r) {
-    if(r->vertex_count == 0)
+    if(r->triangle.vertex_count + r->circle.vertex_count == 0)
         return;
 
     render_frame_end(r);
@@ -104,11 +179,15 @@ void render_frame_flush(Renderer *r) {
 }
 
 void render_switch_triangle(Renderer *r) {
+    // if(r->object_kind == OBJECT_TRIANGLE)
+    //     return;
     render_frame_flush(r);
     r->object_kind = OBJECT_TRIANGLE;
 }
 
 void render_switch_circle(Renderer *r) {
+    // if(r->object_kind == OBJECT_CIRCLE)
+    //     return;
     render_frame_flush(r);
     r->object_kind = OBJECT_CIRCLE;
 }
@@ -179,7 +258,11 @@ void render_submit_batch(Renderer *r, GLuint texture) {
     const bool same_texture = texture == r->textures[r->texture_index];
 
     // flush batch
-    if(r->vertex_count == MAX_VERTICES || r->texture_count > 8 || !same_texture) {
+    if(
+        r->triangle.vertex_count + r->circle.vertex_count == MAX_VERTICES ||
+        r->texture_count > 8 ||
+        !same_texture
+    ) {
         render_frame_flush(r);
         if(r->texture_count > 8)
             r->texture_count = 0;
@@ -214,69 +297,78 @@ void render_populate_index_buffer(Renderer *r, size_t index_count) {
     // r->index_count += index_count;
 }
 
-void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture) {
+void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture) {
     render_submit_batch(r, texture);
 
     // TODO: fix triangles and rectangles (although they have correct indices) render weirdly
     // 0 1 2
     // 3 4 5
     // ...
-    const size_t index = r->vertex_count;
+    const size_t index = r->triangle.vertex_count;
     const GLuint indices[1 * 3] = {
         index + 0, index + 1, index + 2
     };
-    memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
-    r->index_count += 3;
+    memcpy(r->triangle.index_buffer + r->triangle.index_count, indices, sizeof(indices));
+    r->triangle.index_count += 3;
 
-    const size_t offset = r->vertex_count;
-    r->vertex_buffer[offset + 0] = a;
-    r->vertex_buffer[offset + 1] = b;
-    r->vertex_buffer[offset + 2] = c;
-    r->vertex_count += 3;
+    const size_t offset = r->triangle.vertex_count;
+    r->triangle.vertex_buffer[offset + 0] = a;
+    r->triangle.vertex_buffer[offset + 1] = b;
+    r->triangle.vertex_buffer[offset + 2] = c;
+    r->triangle.vertex_count += 3;
 }
 
-void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture) {
+void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, RenderVertexTriangle d, GLuint texture) {
     render_submit_batch(r, texture);
     // TODO: triangle strip/fan?
 
     // 0 1 2, 1 2 3
     // 4 5 6, 5 6 7
     // ...
-    const size_t index = r->vertex_count;
+    const size_t index = r->triangle.vertex_count;
     const GLuint indices[2 * 3] = {
         index + 0, index + 1, index + 2,
         index + 1, index + 2, index + 3
     };
-    memcpy(r->index_buffer + r->index_count, indices, sizeof(indices));
-    r->index_count += 6;
+    memcpy(r->triangle.index_buffer + r->triangle.index_count, indices, sizeof(indices));
+    r->triangle.index_count += 6;
 
-    const size_t offset = r->vertex_count;
-    r->vertex_buffer[offset + 0] = a;
-    r->vertex_buffer[offset + 1] = b;
-    r->vertex_buffer[offset + 2] = c;
-    r->vertex_buffer[offset + 3] = d;
-    r->vertex_count += 4;
+    const size_t offset = r->triangle.vertex_count;
+    r->triangle.vertex_buffer[offset + 0] = a;
+    r->triangle.vertex_buffer[offset + 1] = b;
+    r->triangle.vertex_buffer[offset + 2] = c;
+    r->triangle.vertex_buffer[offset + 3] = d;
+    r->triangle.vertex_count += 4;
+}
+
+void render_push_circle(Renderer *r, RenderVertexCircle point) {
+    render_submit_batch(r, 0); // TODO: 0 or 1?
+
+    for(uint8_t _ = 0; _ < 3; _++) {
+        point.index = r->circle.vertex_count;
+        r->circle.vertex_buffer[r->circle.vertex_count++] = point;
+    }
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
     render_push_quad(
         r,
-        (RenderVertex){
+        (RenderVertexTriangle){
             .pos    = {rect.x, rect.y, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x, uv.y}
         },
-        (RenderVertex){
+        (RenderVertexTriangle){
             .pos    = {rect.x + rect.width, rect.y, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x + uv.width, uv.y}
         },
-        (RenderVertex){
+        (RenderVertexTriangle){
             .pos    = {rect.x, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x, uv.y + uv.height}
         },
-        (RenderVertex){
+        (RenderVertexTriangle){
             .pos    = {rect.x + rect.width, rect.y + rect.height, 0},
             .colour = {1, 1, 1, 1},
             .uv     = {uv.x + uv.width, uv.y + uv.height}
@@ -336,22 +428,22 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
     for(uint8_t i = 0; i < 6; i++) {
         render_push_quad(
             r,
-            (RenderVertex){
+            (RenderVertexTriangle){
                 .pos    = vertices[4*i + 0],
                 .colour = {1, 1, 1, 1},
                 .uv     = {0, 0}
             },
-            (RenderVertex){
+            (RenderVertexTriangle){
                 .pos    = vertices[4*i + 1],
                 .colour = {1, 1, 1, 1},
                 .uv     = {1, 0}
             },
-            (RenderVertex){
+            (RenderVertexTriangle){
                 .pos    = vertices[4*i + 2],
                 .colour = {1, 1, 1, 1},
                 .uv     = {0, 1}
             },
-            (RenderVertex){
+            (RenderVertexTriangle){
                 .pos    = vertices[4*i + 3],
                 .colour = {1, 1, 1, 1},
                 .uv     = {1, 1}
@@ -361,8 +453,16 @@ void render_draw_cube(Renderer *r, Cube cube, GLuint texture) {
     }
 }
 
-void render_draw_circle(Renderer *r, Circle circle, GLuint texture) {
-
+void render_draw_circle(Renderer *r, Circle circle) {
+    // render_switch_circle(r);
+    render_push_circle(
+        r,
+        (RenderVertexCircle){
+            .pos    = {circle.x, circle.y, 0},
+            .colour = {1, 1, 1, 1},
+            .radius = circle.radius,
+        }
+    );
 }
 
 GLuint _white_texture = UINT32_MAX;

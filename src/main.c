@@ -55,15 +55,27 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         update_delta_time();
-        if(glfwGetKey(window, GLFW_KEY_O))
+        if(glfwGetKey(window, GLFW_KEY_A))
             entity.pos.x += 4 * delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_D))
+            entity.pos.x -= 4 * delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_W))
+            entity.pos.y += 4 * delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_S))
+            entity.pos.y -= 4 * delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_O))
+            entity.size++;
 
         render_frame_begin(&renderer);
+            render_switch_triangle(&renderer);
             render_switch_3d(&renderer);
-            draw_entity(&renderer, &entity);
+            // draw_entity(&renderer, &entity);
 
-            render_switch_2d(&renderer);
+            // render_switch_2d(&renderer);
             render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
+
+            render_switch_circle(&renderer);
+            render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
         render_frame_end(&renderer);
 
         process_general_input(window, &wireframe);

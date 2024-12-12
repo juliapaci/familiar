@@ -28,36 +28,52 @@ typedef struct {
     vec3s pos;
     vec4s colour;
     vec2s uv;
-} RenderVertex;
+} RenderVertexTriangle;
+
+typedef struct {
+    vec3s pos;
+    vec4s colour;
+    float radius;
+
+    float index;
+} RenderVertexCircle;
 
 // TODO: lookat using TEXTURE_2D_ARRAY
 typedef struct {
-    // OpenGL objects
-    GLuint vao;
-    GLuint ibo;
-    GLuint vbo;
+    // OpenGL objects and cpu mirror of gpu buffers
+    struct {
+        GLuint vao;
+        GLuint ibo;
+        GLuint vbo;
 
-    //
-    ObjectKind object_kind;
+        GLuint index_buffer[MAX_INDICES];
+        RenderVertexTriangle vertex_buffer[MAX_VERTICES];
+        // TODO: theres definantly a way to derive index_count from vertex_count
+        uint16_t index_count;
+        uint16_t vertex_count;
+    } triangle;
 
-    // shader (triangle, circle)
-    Shader shaders[2];
+    struct {
+        GLuint vao;
+        GLuint ibo;
+        GLuint vbo;
 
-    // camera
-    Camera camera;
-
-    // cpu mirror of gpu buffers
-    GLuint index_buffer[MAX_INDICES];
-    RenderVertex vertex_buffer[MAX_VERTICES];
-    // TODO: theres definantly a way to derive index_count from vertex_count
-    uint16_t index_count;
-    uint16_t vertex_count;
+        RenderVertexCircle vertex_buffer[MAX_VERTICES];
+        uint16_t vertex_count;
+    } circle;
 
     // Current texture for batching textures in independant draw calls
     // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
     GLuint textures[8];
     uint8_t texture_count;
     GLuint texture_index; // current index
+
+    // shader (triangle, circle)
+    ObjectKind object_kind;
+    Shader shaders[2];
+
+    // camera
+    Camera camera;
 } Renderer;
 
 typedef struct {
@@ -86,6 +102,7 @@ typedef struct {
     float depth;
 } Cube;
 
+// Note: circles dont have textures. use a texture in the shape of a circle on a quad if you need to
 typedef struct {
     // centre of circle
     float x;
@@ -98,7 +115,7 @@ void render_free(Renderer *renderer);
 
 // wrappers
 // TODO: not sure if we should restrict to amount of shaders (i.e. OBJECT_RECTANGLE doesnt have a shader but it should only be used for animation anyway so i dont know)
-inline Shader *render_shader(Renderer *r) { return &r->shaders[r->object_kind]; };
+inline Shader *render_shader(Renderer *r) { return r->shaders + r->object_kind; };
 
 // batch control
 void render_frame_begin(Renderer *renderer);
@@ -120,16 +137,16 @@ void render_switch_projection(Renderer *r, Projection projection);
 void render_switch_2d(Renderer *r);
 void render_switch_3d(Renderer *r);
 
-// Note: texture id is found in `a`
 void render_populate_index_buffer(Renderer *r, size_t index_count);
 void render_submit_batch(Renderer *r, GLuint texture); // update batch information like current texture and flushes the batch if certain criteria is met
-void render_push_triangle(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, GLuint texture);
-void render_push_quad(Renderer *r, RenderVertex a, RenderVertex b, RenderVertex c, RenderVertex d, GLuint texture);
+void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture);
+void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, RenderVertexTriangle d, GLuint texture);
+void render_push_circle(Renderer *r, RenderVertexCircle point);
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
-void render_draw_circle(Renderer *r, Circle circle, GLuint texture);
+void render_draw_circle(Renderer *r, Circle circle);
 
 GLuint render_get_white_texture(void);
 GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);
