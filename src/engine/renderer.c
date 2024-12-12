@@ -20,7 +20,7 @@ void render_init(Renderer *r) {
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
 
     // vertex attributes
-    // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader io
+    // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader ig possibly using stb_c_lexer or maybe some reflection
     // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
@@ -33,10 +33,6 @@ void render_init(Renderer *r) {
     glGenVertexArrays(1, &r->circle.vao);
     glBindVertexArray(r->circle.vao);
 
-    glGenBuffers(1, &r->circle.ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_VERTICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-
     glGenBuffers(1, &r->circle.vbo);
     glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
     glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
@@ -44,11 +40,15 @@ void render_init(Renderer *r) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, pos));
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, colour));
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, radius));
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, index));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fade));
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fullness));
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, index));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(5);
 
     // shader
     render_switch_triangle(r);
@@ -78,7 +78,6 @@ void render_free(Renderer *r) {
     glDeleteVertexArrays(1, &r->triangle.vao);
 
     glDeleteBuffers(1, &r->circle.vbo);
-    glDeleteBuffers(1, &r->circle.ibo);
     glDeleteVertexArrays(1, &r->circle.vao);
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
@@ -142,26 +141,11 @@ void render_frame_end(Renderer *r) {
                 r->circle.vertex_buffer
             );
 
-            // 0, 1, 2
-            // 3, 4, 5
-            // ...
             // TODO: instancing?
-            GLuint indices[r->circle.vertex_count];
-            for(size_t i = 0; i < r->circle.vertex_count; i++)
-                indices[i] = i;
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
-            glBufferSubData(
-                GL_ELEMENT_ARRAY_BUFFER,
-                0,
-                sizeof(indices),
-                indices
-            );
-
-            glDrawElements(
+            glDrawArrays(
                 GL_TRIANGLES,
-                r->circle.vertex_count * sizeof(RenderVertexCircle),
-                GL_UNSIGNED_INT,
-                NULL
+                0,
+                r->circle.vertex_count * sizeof(RenderVertexCircle)
             );
         } break;
 
@@ -458,9 +442,11 @@ void render_draw_circle(Renderer *r, Circle circle) {
     render_push_circle(
         r,
         (RenderVertexCircle){
-            .pos    = {circle.x, circle.y, 0},
-            .colour = {1, 1, 1, 1},
-            .radius = circle.radius,
+            .pos        = {circle.x, circle.y, 0},
+            .colour     = {1, 1, 1, 1},
+            .radius     = circle.radius,
+            .fade       = 0.95f,
+            .fullness   = 1.0f
         }
     );
 }

@@ -2,10 +2,14 @@
 layout (location = 0) in vec3 a_pos;
 layout (location = 1) in vec4 a_colour;
 layout (location = 2) in float a_radius;
-layout (location = 3) in float a_index;
+layout (location = 3) in float a_fade;
+layout (location = 4) in float a_fullness;
+layout (location = 5) in float a_index;
 
 out vec3 v_pos;
 out vec4 v_colour;
+out float v_fade;
+out float v_fullness;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -23,4 +27,6 @@ void main() {
 
     v_pos = vec3(local_space, 0.0);
     v_colour = a_colour;
+    v_fade = a_fade;
+    v_fullness = a_fullness;
 }

@@ -87,16 +87,15 @@ void animation_actor_action_add(Actor *actor, Action action) {
     arrins(actor->actions, index, action);
 }
 
-#define ANIMATION_FLOW
 #ifndef ANIMATION_FLOW
 
 // TODO: macro is easier but a generic function would be more safe
-#define _ANIMATION_BINARY_SEARCH(array, getter, target) do {        \
+#define _ANIMATION_BINARY_SEARCH(array, retrieval, target) do {     \
     size_t l = 0;                                                   \
     size_t r = arrlen(array) - 1;                                   \
     while(l < r) {                                                  \
         const size_t m = (r + l)/2;                                 \
-        const float element = getter;                               \
+        const float element = array[m].retrieval;                   \
                                                                     \
         if(time > element)                                          \
             l = m;                                                  \
@@ -110,11 +109,11 @@ void animation_actor_action_add(Actor *actor, Action action) {
 } while(0)
 
 size_t animation_actor_place(Animation *animation, float time) {
-    _ANIMATION_BINARY_SEARCH(animation->actors, animation->actors[m].actions[0].start, time);
+    _ANIMATION_BINARY_SEARCH(animation->actors, actions[0].start, time);
 }
 
 size_t animation_action_place(Actor *actor, float time) {
-    _ANIMATION_BINARY_SEARCH(actor->actions, actor->actions[m].start, time);
+    _ANIMATION_BINARY_SEARCH(actor->actions, start, time);
 }
 
 #else   // defined ANIMATION_FLOW

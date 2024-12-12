@@ -63,24 +63,22 @@ int main(void) {
             entity.pos.y += 4 * delta_time;
         else if(glfwGetKey(window, GLFW_KEY_S))
             entity.pos.y -= 4 * delta_time;
-        else if(glfwGetKey(window, GLFW_KEY_O))
-            entity.size++;
 
         render_frame_begin(&renderer);
             render_switch_triangle(&renderer);
             render_switch_3d(&renderer);
-            // draw_entity(&renderer, &entity);
+            draw_entity(&renderer, &entity);
 
-            // render_switch_2d(&renderer);
+            render_switch_2d(&renderer);
             render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
 
             render_switch_circle(&renderer);
+            render_switch_3d(&renderer);
             render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
         render_frame_end(&renderer);
 
         process_general_input(window, &wireframe);
         process_camera_input(window, &renderer.camera);
-        camera_update(&renderer.camera, render_shader(&renderer));
 
         glfwSwapBuffers(window);
         glfwPollEvents();

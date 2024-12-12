@@ -33,7 +33,10 @@ typedef struct {
 typedef struct {
     vec3s pos;
     vec4s colour;
+
     float radius;
+    float fade;     // [0, 1) -> blurryness
+    float fullness; // [0, 1] -> doughnutness
 
     float index;
 } RenderVertexCircle;
@@ -55,7 +58,6 @@ typedef struct {
 
     struct {
         GLuint vao;
-        GLuint ibo;
         GLuint vbo;
 
         RenderVertexCircle vertex_buffer[MAX_VERTICES];
