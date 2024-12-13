@@ -1,7 +1,8 @@
 #ifndef __ANIMATION_H__
 #define __ANIMATION_H__
+
+#define ANIMATION_UTILITIES // TODO: need to define it for now cause of linking errors
 // define `ANIMATION_UTILITIES` for utility functions like `lerp`
-// define `ANIMATION_FLOW` for procedural animation
 
 // NOTE: will probably reimplement in another language for better generic support since void *, macros, and metaprogramming is annoying to use
 
@@ -12,8 +13,6 @@
 // forward declarations
 struct Actor;
 struct Animation;
-
-// all timing is in 60 frames (1 (float) = 60 (frames))
 
 typedef struct {
     float start;
@@ -46,28 +45,28 @@ typedef struct Actor {
 typedef struct Animation {
     Renderer *renderer; // rendering context to draw stuff with
 
-    float time;         // current time
+    float time;         // current time (frame)
     float duration;     // duration of animation
 
     Actor *actors;      // stb dynamic array
 } Animation;
 
 // animation
-void animation_init(Animation *animation, Renderer *renderer);
+void animation_init(Animation *animation);
 void animation_free(Animation *animation);
 
 void animation_render_actor(Animation *animation, Actor *actor);
 void animation_play(Animation *animation); // plays an animation frame
 void animation_actor_play(Animation *animation, Actor *actor, float time); // plays animation frame
-inline void animation_action_default(
+inline void _animation_action_default(
         struct Animation *animation,
         struct Actor *actor,
         float _t,
         void *_extra_args
 ) { animation_render_actor(animation, actor); };
 
-void animation_actor_add(Animation *animation, void *actor, const ObjectKind kind, float time);
-void animation_actor_action_add(Actor *actor, Action action);
+Actor *animation_actor_add(Animation *animation, void *actor, const ObjectKind kind, float time);
+void animation_action_add(Actor *actor, Action *action);
 
 // placements for sorted actors
 size_t animation_actor_place(Animation *animation, float time); // index of `animation`'s actors which `time` should sort into

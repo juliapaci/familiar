@@ -18,10 +18,11 @@
 #endif // DEBUG
 
 
-#define BUILD "build"
-#define ENGINE "engine"
-#define THIRD_PARTY "external"
 #define SRC "src"
+#define ENGINE "engine"
+#define EXAMPLE "examples"
+#define THIRD_PARTY "external"
+#define BUILD "build"
 
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
@@ -98,8 +99,13 @@ void build_dependencies(void) {
     INFO("building engine"); build_dep_engine();
 }
 
-void build_familiar(void) {
-    CMD("cc", CFLAGS, "-o", PATH(BUILD, "familiar"), PATH("src", "main.c"), LDFLAGS);
+void build_examples(void) {
+    FOREACH_FILE_IN_DIR(file, PATH(SRC, EXAMPLE), {
+        if(ENDS_WITH(file, ".c")) {
+            INFO("building example \"%s\"", file);
+            CMD("cc", CFLAGS, "-o", PATH(BUILD, CONCAT("example_", NOEXT(file))), PATH(SRC, EXAMPLE, file), LDFLAGS);
+        }
+    });
 }
 
 // NOTE: very bare bones just so clangd can pick up on stuff
@@ -142,10 +148,12 @@ int main(int argc, char **argv) {
     INFO("creating \"compile_commands.json\""); create_compile_commands();
     CMD("mkdir", "-p", BUILD);
     INFO("building dependencies"); build_dependencies();
-    INFO("building familiar"); build_familiar();
+    INFO("building examples"); build_examples();
 
-    if(argc >= 2 && strcmp(argv[1], "run") == 0)
-        CMD(PATH(BUILD, "familiar"));
+    if(argc >= 3 && strcmp(argv[1], "example") == 0)
+        CMD(PATH(BUILD, CONCAT("example_", argv[2])));
+    else
+        INFO("note that you can run nob examples with \"%s example <example name>\"", argv[0]);
 
     return 0;
 }

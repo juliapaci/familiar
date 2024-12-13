@@ -1,17 +1,21 @@
 #include "animation.h"
 
-void animation_init(Animation *animation, Renderer *renderer) {
-    *animation = (Animation){.renderer = renderer, 0};
+void animation_init(Animation *animation) {
+    *animation = (Animation){0};
 
+    animation->renderer = malloc(sizeof(Renderer));
+    render_init(animation->renderer);
     arrsetcap(animation->actors, 10);
 }
 
-// NOTE: does not free animation.renderer
 void animation_free(Animation *animation) {
+    render_free(animation->renderer);
+    free(animation->renderer);
     arrfree(animation->actors);
 }
 
 void animation_render_actor(Animation *animation, Actor *actor) {
+    // TODO: better switching between circle and triangle renderer states
     switch(actor->kind) {
         case OBJECT_TRIANGLE: {
 
@@ -22,11 +26,11 @@ void animation_render_actor(Animation *animation, Actor *actor) {
         } break;
 
         case OBJECT_RECTANGLE: {
-            render_draw_rectangle(animation->renderer, *(Rectangle *)actor->actor, 0);
+            render_draw_rectangle(animation->renderer, *(Rectangle *)actor->actor, 1);
         } break;
 
         case OBJECT_CUBE: {
-            render_draw_cube(animation->renderer, *(Cube *)actor->actor, 0);
+            render_draw_cube(animation->renderer, *(Cube *)actor->actor, 1);
         } break;
 
         default: break;
@@ -34,20 +38,19 @@ void animation_render_actor(Animation *animation, Actor *actor) {
 }
 
 void animation_play(Animation *animation) {
-    if(animation->time == animation->duration)
-        return;
-    animation->time++;
+    if(animation->time != animation->duration)
+        animation->time++;
 
     for(size_t i = 0; i < arrlen(animation->actors); i++)
         animation_actor_play(animation, &animation->actors[i], animation->time);
 }
 
-extern void animation_action_default(struct Animation *animation, struct Actor *actor, float _t, void *_extra_args);
+extern void _animation_action_default(struct Animation *animation, struct Actor *actor, float _t, void *_extra_args);
 
 void animation_actor_play(Animation *animation, Actor *actor, float time) {
     size_t *actions = animation_active_actions(actor, time);
 
-    for(size_t i = 1; i < actions[0]; i++) // actor->actions[0] will always be lifetime so we can just skip it
+    for(size_t i = 0; i < actions[0]; i++)
         actor->actions[i].mutate_actor(
             animation,
             actor,
@@ -58,7 +61,7 @@ void animation_actor_play(Animation *animation, Actor *actor, float time) {
     free(actions);
 }
 
-void animation_actor_add(
+Actor *animation_actor_add(
     Animation *animation,
     void *object,
     const ObjectKind kind,
@@ -74,23 +77,28 @@ void animation_actor_add(
     const Action default_action = (Action){
         .start = time,
         .end = time,
-        .mutate_actor = animation_action_default
+        .mutate_actor = _animation_action_default
     };
     arrput(actor.actions, default_action);
 
     const size_t index = animation_actor_place(animation, time);
     arrins(animation->actors, index, actor);
+
+    return animation->actors + index;
 }
 
-void animation_actor_action_add(Actor *actor, Action action) {
-    const size_t index = animation_action_place(actor, action.start);
-    arrins(actor->actions, index, action);
+void animation_action_add(Actor *actor, Action *action) {
+    // TODO: auto adjust Animation duration if action exceeds the end
+    const size_t index = animation_action_place(actor, action->start);
+    arrins(actor->actions, index, (*action));
 }
-
-#ifndef ANIMATION_FLOW
 
 // TODO: macro is easier but a generic function would be more safe
 #define _ANIMATION_BINARY_SEARCH(array, retrieval, target) do {     \
+    printf("%ld\n", arrlen(array));\
+    if(arrlen(array) == 0)                                          \
+        return 0;                                                   \
+                                                                    \
     size_t l = 0;                                                   \
     size_t r = arrlen(array) - 1;                                   \
     while(l < r) {                                                  \
@@ -116,18 +124,6 @@ size_t animation_action_place(Actor *actor, float time) {
     _ANIMATION_BINARY_SEARCH(actor->actions, start, time);
 }
 
-#else   // defined ANIMATION_FLOW
-
-size_t animation_actor_place(Animation *animation, float _time) {
-    return arrlen(animation->actors);
-}
-
-size_t animation_action_place(Actor *actor, float _time) {
-    return arrlen(actor->actions);
-}
-
-#endif  // ANIMATION_FLOW
-
 // needs to be freed
 // first size_t is the amount of elements
 size_t *animation_active_actions(Actor *actor, float time) {
@@ -143,6 +139,8 @@ size_t *animation_active_actions(Actor *actor, float time) {
         end++
     )
         buffer[end-start] = end;
+    for(int i = 0; i < end-start; i++)
+        printf("b: %ld\n", buffer[i]);
 
     size_t *elements = malloc((end-start) * sizeof(size_t));
     elements[0] = end-start;

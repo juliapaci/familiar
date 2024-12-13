@@ -22,6 +22,6 @@ inline void set_framebuffer_size_callback(GLFWwindow *window) {
     glfwSetFramebufferSizeCallback(window, _framebuffer_size_callback);
 }
 
-void process_general_input(GLFWwindow *window, bool *wireframe);
+void process_general_input(GLFWwindow *window);
 
 #endif // __GENERAL_H__

@@ -72,11 +72,7 @@ void _framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 extern void set_framebuffer_size_callback(GLFWwindow *window);
 
-void process_general_input(GLFWwindow *window, bool *wireframe) {
+void process_general_input(GLFWwindow *window) {
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    else if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        *wireframe = !*wireframe;
-        glPolygonMode(GL_FRONT_AND_BACK, *wireframe ? GL_LINE : GL_FILL);
-    }
 }

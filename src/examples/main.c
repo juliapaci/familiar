@@ -33,13 +33,12 @@ void free_entity(Entity *entity) {
 }
 
 int main(void) {
-    GLFWwindow *window = init_window("Familiar example");
+    GLFWwindow *window = init_window("Familiar main example");
     if(window == NULL) return 1;
 
-    bool wireframe = false;
     Renderer renderer;
     render_init(&renderer);
-    set_cam_callback(window, &renderer.camera);
+    set_camera_callback(window, &renderer.camera);
 
     RenderFont font;
     render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 10);
@@ -47,7 +46,7 @@ int main(void) {
     Entity entity = {
         .texture    = render_texture_load_file("assets/awesomeface.png"),
         .pos        = {0, 0, 0},
-        .size       = 10
+        .size       = 1
     };
 
     while(!glfwWindowShouldClose(window)) {
@@ -77,7 +76,7 @@ int main(void) {
             render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
         render_frame_end(&renderer);
 
-        process_general_input(window, &wireframe);
+        process_general_input(window);
         process_camera_input(window, &renderer.camera);
 
         glfwSwapBuffers(window);

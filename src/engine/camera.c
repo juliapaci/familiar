@@ -16,6 +16,8 @@ const Camera CAMERA_DEFAULT = {
 
     .last_x = 0.0f,
     .last_y = 0.0f,
+
+    .enabled = true
 };
 
 Camera camera_init(void) {
@@ -39,6 +41,8 @@ Camera camera_init(void) {
 }
 
 void camera_update(Camera *camera, Shader *shader) {
+    // if(!camera->enabled)
+    //     return;
     // glEnable(GL_DEPTH_TEST);
 
     GLint viewport[4];
@@ -68,6 +72,18 @@ void camera_update(Camera *camera, Shader *shader) {
 }
 
 void process_camera_input(GLFWwindow *window, Camera *camera) {
+    if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)) {
+        camera->enabled = !camera->enabled;
+        glfwSetInputMode(
+            window,
+            GLFW_CURSOR,
+            // normal, disabled
+            GLFW_CURSOR_NORMAL + 2*camera->enabled
+        );
+    }
+    if(!camera->enabled)
+        return;
+
     camera->front = glms_vec3_scale(camera->front, camera_speed * delta_time);
 
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
@@ -90,6 +106,8 @@ void process_camera_input(GLFWwindow *window, Camera *camera) {
 
 void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos) {
     Camera *camera = glfwGetWindowUserPointer(window);
+    if(!camera->enabled)
+        return;
 
     float x_off = x_pos - camera->last_x;
     float y_off = camera->last_y - y_pos;
@@ -116,8 +134,10 @@ void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos) {
 
 void _scroll_callback(GLFWwindow *window, double x_off, double y_off) {
     Camera *camera = glfwGetWindowUserPointer(window);
+    if(!camera->enabled)
+        return;
 
     camera->fov -= (float)y_off;
     camera->fov = glm_clamp(camera->fov, 1.0f, 180.0f);
 }
-extern void set_cam_callback(GLFWwindow *window, Camera *camera);
+extern void set_camera_callback(GLFWwindow *window, Camera *camera);

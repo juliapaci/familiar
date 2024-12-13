@@ -21,6 +21,8 @@ typedef struct {
     // mouse state
     float last_x;
     float last_y;
+
+    bool enabled;
 } Camera;
 
 extern const vec3s up_unit;
@@ -35,7 +37,7 @@ void camera_update(Camera *camera, Shader *shader);
 // glfw stuff
 void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos);
 void _scroll_callback(GLFWwindow *window, double x_off, double y_off);
-inline void set_cam_callback(GLFWwindow *window, Camera *camera) {
+inline void set_camera_callback(GLFWwindow *window, Camera *camera) {
     glfwSetWindowUserPointer(window, camera);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, _mouse_callback);
