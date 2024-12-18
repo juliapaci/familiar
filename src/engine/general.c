@@ -40,14 +40,13 @@ GLFWwindow *init_window(const char *name) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow *window = glfwCreateWindow(800, 600, name, NULL, NULL);
-
-    set_framebuffer_size_callback(window);
     if(window == NULL) {
         fprintf(stderr, "failed to create glfw window\n");
         glfwTerminate();
         return NULL;
     }
     glfwMakeContextCurrent(window);
+    set_framebuffer_size_callback(window);
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fprintf(stderr, "failed to initialize glad\n");
@@ -68,6 +67,7 @@ GLFWwindow *init_window(const char *name) {
 }
 
 void _framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+    // TODO: maybe check if theres a shader uniform we can change aswell?
     glViewport(0, 0, width, height);
 }
 extern void set_framebuffer_size_callback(GLFWwindow *window);

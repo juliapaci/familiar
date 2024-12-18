@@ -1,5 +1,5 @@
-#ifndef __RENDERER_H__
-#define __RENDERER_H__
+#ifndef __FAMILIAR_RENDERER_H__
+#define __FAMILIAR_RENDERER_H__
 
 #include <cglm/struct.h>
 #include <glad/glad.h>
@@ -162,4 +162,4 @@ void render_font_free(RenderFont *font);
 // textures of characters making up `text`
 void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text);
 
-#endif // __RENDERER_H__
+#endif // __FAMILIAR_RENDERER_H__

@@ -1,5 +1,5 @@
-#ifndef __SHADER_H__
-#define __SHADER_H__
+#ifndef __FAMILIAR_SHADER_H__
+#define __FAMILIAR_SHADER_H__
 
 #include <glad/glad.h>
 #include <stdbool.h>
@@ -18,13 +18,14 @@ typedef struct {
 void shader_init(Shader *shader, const char *vertex_path, const char *fragment_path);
 void shader_free(Shader *shader);
 
-const char *_read_file(const char *file_path);  /// reads a file to a string
-bool _error_check_shader(unsigned int shader);  /// checks for errors in shader source
-bool _error_check_program(unsigned int program);/// checks (linking?) errors in shader program
+const char *_read_file(const char *file_path);  // reads a file to a string
+// GL_COMPILE_STATUS
+// GL_LINK_STATUS
+bool _error_check(GLuint shader, GLenum pname); // checks for errors in shader source
 
 unsigned int shader_make(const char *vertex_path, const char *fragment_path); // builds the shader program
 void shader_update_locations(Shader *shader);
 
 // TODO: uniform update wrappers
 
-#endif // __SHADER_H__
+#endif // __FAMILIAR_SHADER_H__

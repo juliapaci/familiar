@@ -96,6 +96,8 @@ void render_frame_begin(Renderer *r) {
 
 void render_frame_end(Renderer *r) {
     glUseProgram(render_shader(r)->id);
+
+    // buffer updates and draw calls
     switch(r->object_kind) {
         case OBJECT_TRIANGLE: {
             // current batch's texture
@@ -103,7 +105,6 @@ void render_frame_end(Renderer *r) {
             glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
             glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
 
-            // buffer updates and draw calls
             // triangle
             glBindVertexArray(r->triangle.vao);
 
@@ -125,7 +126,7 @@ void render_frame_end(Renderer *r) {
 
             glDrawElements(
                 GL_TRIANGLES,
-                r->triangle.vertex_count * sizeof(RenderVertexTriangle),
+                r->triangle.index_count,
                 GL_UNSIGNED_INT,
                 NULL
             );

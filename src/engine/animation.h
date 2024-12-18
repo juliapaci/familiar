@@ -1,5 +1,5 @@
-#ifndef __ANIMATION_H__
-#define __ANIMATION_H__
+#ifndef __FAMILIAR_ANIMATION_H__
+#define __FAMILIAR_ANIMATION_H__
 
 #define ANIMATION_UTILITIES // TODO: need to define it for now cause of linking errors
 // define `ANIMATION_UTILITIES` for utility functions like `lerp`
@@ -78,4 +78,4 @@ size_t *animation_active_actions(Actor *actor, float time); // index of the firs
 float lerp_f32(float a, float b, float t);
 #endif // ANIMATION_UTILITIES
 
-#endif // __ANIMATION_H__
+#endif // __FAMILIAR_ANIMATION_H__

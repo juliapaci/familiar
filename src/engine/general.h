@@ -1,5 +1,5 @@
-#ifndef __GENERAL_H__
-#define __GENERAL_H__
+#ifndef __FAMILIAR_GENERAL_H__
+#define __FAMILIAR_GENERAL_H__
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -24,4 +24,4 @@ inline void set_framebuffer_size_callback(GLFWwindow *window) {
 
 void process_general_input(GLFWwindow *window);
 
-#endif // __GENERAL_H__
+#endif // __FAMILIAR_GENERAL_H__

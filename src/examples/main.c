@@ -70,6 +70,24 @@ int main(void) {
 
             render_switch_2d(&renderer);
             render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
+            render_push_triangle(&renderer,
+                (RenderVertexTriangle){
+                    .pos    = {0, 0, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {0, 0}
+                },
+                (RenderVertexTriangle){
+                    .pos    = {10, 0, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {1, 0}
+                },
+                (RenderVertexTriangle){
+                    .pos    = {0, 10, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {0, 1}
+                },
+                1
+            );
 
             render_switch_circle(&renderer);
             render_switch_3d(&renderer);

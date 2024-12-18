@@ -1,5 +1,5 @@
-#ifndef __CAMERA_H__
-#define __CAMERA_H__
+#ifndef __FAMILIAR_CAMERA_H__
+#define __FAMILIAR_CAMERA_H__
 
 #include <engine/shader.h>
 #include <GLFW/glfw3.h>
@@ -46,4 +46,4 @@ inline void set_camera_callback(GLFWwindow *window, Camera *camera) {
 
 void process_camera_input(GLFWwindow *window, Camera *camera);
 
-#endif // __CAMERA_H__
+#endif // __FAMILIAR_CAMERA_H__

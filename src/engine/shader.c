@@ -39,33 +39,20 @@ const char *_read_file(const char *file_path) {
     return buffer;
 }
 
-bool _error_check_shader(unsigned int shader) {
-    int success;
-    char info_log[512];
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+bool _error_check(GLuint shader, GLenum pname) {
+    GLint success;
+    glGetShaderiv(shader, pname, &success);
+
     if(!success) {
+        GLchar info_log[512];
         glGetShaderInfoLog(shader, 512, NULL, info_log);
-        fprintf(stderr, "shader source compilation error:\n\t%s", info_log);
-        return false;
+        fprintf(stderr, "shader error:\n\t%s", info_log);
     }
 
-    return true;
+    return success;
 }
 
-bool _error_check_program(unsigned int program) {
-    int success;
-    char info_log[512];
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(program, 512, NULL, info_log);
-        fprintf(stderr, "shader program linking error:\n\t%s", info_log);
-        return false;
-    }
-
-    return true;
-}
-
-unsigned int shader_make(const char *vertex_path, const char *fragment_path) {
+GLuint shader_make(const char *vertex_path, const char *fragment_path) {
     const char *vertex_source = _read_file(vertex_path);
     if(vertex_source == NULL) {
         fprintf(stderr, "cannot find vertex shader \"%s\"", vertex_path);
@@ -77,20 +64,20 @@ unsigned int shader_make(const char *vertex_path, const char *fragment_path) {
         return 0;
     }
 
-    unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
-    unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    const GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
+    const GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(vertex, 1, &vertex_source, NULL);
     glShaderSource(fragment, 1, &fragment_source, NULL);
     glCompileShader(vertex);
     glCompileShader(fragment);
-    _error_check_shader(vertex);
-    _error_check_shader(fragment);
+    _error_check(vertex, GL_COMPILE_STATUS);
+    _error_check(fragment, GL_COMPILE_STATUS);
 
-    unsigned int program = glCreateProgram();
+    const GLuint program = glCreateProgram();
     glAttachShader(program, vertex);
     glAttachShader(program, fragment);
     glLinkProgram(program);
-    _error_check_program(program);
+    _error_check(program, GL_LINK_STATUS);
 
     glDetachShader(program, vertex);
     glDetachShader(program, fragment);
