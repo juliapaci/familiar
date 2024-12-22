@@ -7,6 +7,10 @@
 #include <stb/stb_truetype.h>
 #include <engine/shader.h>
 
+// TODO: some way for users to describe static data
+//       maybe allow the shape functions to accept a generic buffer
+//       or just do nothing and the user can do their own opengl static stuff
+
 #define MAX_QUADS       1024
 #define MAX_VERTICES    MAX_QUADS * 4
 #define MAX_INDICES     MAX_QUADS * 6
@@ -37,8 +41,6 @@ typedef struct {
     float radius;
     float fade;     // [0, 1) -> blurryness
     float fullness; // [0, 1] -> doughnutness
-
-    float index;
 } RenderVertexCircle;
 
 // TODO: lookat using TEXTURE_2D_ARRAY
@@ -58,6 +60,7 @@ typedef struct {
 
     struct {
         GLuint vao;
+        GLuint ibo;
         GLuint vbo;
 
         RenderVertexCircle vertex_buffer[MAX_VERTICES];
@@ -125,8 +128,7 @@ void render_frame_end(Renderer *renderer);
 void render_frame_flush(Renderer *renderer);    // flushes current batch
 
 // shader and (maybe in the future) buffer changes
-void render_switch_triangle(Renderer *r);
-void render_switch_circle(Renderer *r);
+void render_switch_object(Renderer *r, ObjectKind kind);
 
 // perspective changes
 // NOTE: renders the current batch before proceeding

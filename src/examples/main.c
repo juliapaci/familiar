@@ -64,7 +64,7 @@ int main(void) {
             entity.pos.y -= 4 * delta_time;
 
         render_frame_begin(&renderer);
-            render_switch_triangle(&renderer);
+            render_switch_object(&renderer, OBJECT_TRIANGLE);
             render_switch_3d(&renderer);
             draw_entity(&renderer, &entity);
 
@@ -89,7 +89,7 @@ int main(void) {
                 1
             );
 
-            render_switch_circle(&renderer);
+            render_switch_object(&renderer, OBJECT_CIRCLE);
             render_switch_3d(&renderer);
             render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
         render_frame_end(&renderer);

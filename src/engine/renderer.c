@@ -8,52 +8,58 @@ void render_init(Renderer *r) {
 
     // initialise buffers
     // triangle
-    glGenVertexArrays(1, &r->triangle.vao);
-    glBindVertexArray(r->triangle.vao);
+    {
+        glGenVertexArrays(1, &r->triangle.vao);
+        glBindVertexArray(r->triangle.vao);
 
-    glGenBuffers(1, &r->triangle.ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->triangle.ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+        glGenBuffers(1, &r->triangle.ibo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->triangle.ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &r->triangle.vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+        glGenBuffers(1, &r->triangle.vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
 
-    // vertex attributes
-    // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader ig possibly using stb_c_lexer or maybe some reflection
-    // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, uv));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
+        // vertex attributes
+        // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader ig possibly using stb_c_lexer or maybe some reflection
+        // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, uv));
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+    }
 
-    // circle
-    glGenVertexArrays(1, &r->circle.vao);
-    glBindVertexArray(r->circle.vao);
+    {
+        // circle
+        glGenVertexArrays(1, &r->circle.vao);
+        glBindVertexArray(r->circle.vao);
 
-    glGenBuffers(1, &r->circle.vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+        glGenBuffers(1, &r->circle.ibo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, pos));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, colour));
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, radius));
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fade));
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fullness));
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, index));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
-    glEnableVertexAttribArray(4);
-    glEnableVertexAttribArray(5);
+        glGenBuffers(1, &r->circle.vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
+        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, pos));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, colour));
+        glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, radius));
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fade));
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, fullness));
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        glEnableVertexAttribArray(4);
+    }
 
     // shader
-    render_switch_triangle(r);
     shader_init(&r->shaders[OBJECT_TRIANGLE], TRIANGLE_VS, TRIANGLE_FS);
     shader_init(&r->shaders[OBJECT_CIRCLE], CIRCLE_VS, CIRCLE_FS);
+    r->object_kind = OBJECT_TRIANGLE;
     glUseProgram(render_shader(r)->id);
 
     // textures
@@ -95,7 +101,6 @@ void render_frame_begin(Renderer *r) {
 }
 
 void render_frame_end(Renderer *r) {
-    glUseProgram(render_shader(r)->id);
 
     // buffer updates and draw calls
     switch(r->object_kind) {
@@ -105,7 +110,6 @@ void render_frame_end(Renderer *r) {
             glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
             glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
 
-            // triangle
             glBindVertexArray(r->triangle.vao);
 
             glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
@@ -142,11 +146,26 @@ void render_frame_end(Renderer *r) {
                 r->circle.vertex_buffer
             );
 
-            // TODO: instancing?
-            glDrawArrays(
-                GL_TRIANGLES,
+            GLuint indices[r->circle.vertex_count * 3];
+            for(size_t i = 0; i < r->circle.vertex_count; i++) {
+                indices[i*3 + 0] = i;
+                indices[i*3 + 1] = i;
+                indices[i*3 + 2] = i;
+            }
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
+            glBufferSubData(
+                GL_ELEMENT_ARRAY_BUFFER,
                 0,
-                r->circle.vertex_count * sizeof(RenderVertexCircle)
+                sizeof(indices),
+                indices
+            );
+
+            // TODO: instancing?
+            glDrawElements(
+                GL_TRIANGLES,
+                r->circle.vertex_count * 3,
+                GL_UNSIGNED_INT,
+                NULL
             );
         } break;
 
@@ -163,18 +182,13 @@ void render_frame_flush(Renderer *r) {
     r->texture_index = 0;
 }
 
-void render_switch_triangle(Renderer *r) {
-    // if(r->object_kind == OBJECT_TRIANGLE)
+void render_switch_object(Renderer *r, ObjectKind kind) {
+    // if(r->object_kind == kind)
     //     return;
-    render_frame_flush(r);
-    r->object_kind = OBJECT_TRIANGLE;
-}
 
-void render_switch_circle(Renderer *r) {
-    // if(r->object_kind == OBJECT_CIRCLE)
-    //     return;
     render_frame_flush(r);
-    r->object_kind = OBJECT_CIRCLE;
+    r->object_kind = kind;
+    glUseProgram(render_shader(r)->id);
 }
 
 void render_switch_projection(Renderer *r, Projection projection) {
@@ -329,10 +343,7 @@ void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle 
 void render_push_circle(Renderer *r, RenderVertexCircle point) {
     render_submit_batch(r, 0); // TODO: 0 or 1?
 
-    for(uint8_t _ = 0; _ < 3; _++) {
-        point.index = r->circle.vertex_count;
-        r->circle.vertex_buffer[r->circle.vertex_count++] = point;
-    }
+    r->circle.vertex_buffer[r->circle.vertex_count++] = point;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {

@@ -40,8 +40,11 @@ const char *_read_file(const char *file_path) {
 }
 
 bool _error_check(GLuint shader, GLenum pname) {
-    GLint success;
-    glGetShaderiv(shader, pname, &success);
+    GLint success = GL_FALSE;
+    if(pname == GL_COMPILE_STATUS)
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    else if(pname == GL_LINK_STATUS)
+        glGetProgramiv(shader, GL_LINK_STATUS, &success);
 
     if(!success) {
         GLchar info_log[512];

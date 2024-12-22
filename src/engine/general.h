@@ -8,6 +8,8 @@
 #include <engine/camera.h>
 
 // TODO: siwtch to global arena allocator
+// TODO: user defined hashmap: keys to function pointers
+//       for a single dynamic glfw key callback
 
 // temporary solution
 extern float delta_time;
