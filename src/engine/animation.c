@@ -147,13 +147,3 @@ size_t *animation_active_actions(Actor *actor, float time) {
     memcpy(elements + 1, buffer, end-start);
     return elements;
 }
-
-// utilities
-
-#ifdef ANIMATION_UTILITIES
-
-float lerp_f32(float a, float b, float t) {
-    return a * (1.f - t) + (b * t);
-}
-
-#endif // ANIMATION_UTILITIES

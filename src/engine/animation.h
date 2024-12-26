@@ -1,8 +1,7 @@
 #ifndef __FAMILIAR_ANIMATION_H__
 #define __FAMILIAR_ANIMATION_H__
 
-#define ANIMATION_UTILITIES // TODO: need to define it for now cause of linking errors
-// define `ANIMATION_UTILITIES` for utility functions like `lerp`
+#define ANIMATION_UTILITIES
 
 // NOTE: will probably reimplement in another language for better generic support since void *, macros, and metaprogramming is annoying to use
 
@@ -72,10 +71,5 @@ void animation_action_add(Actor *actor, Action *action);
 size_t animation_actor_place(Animation *animation, float time); // index of `animation`'s actors which `time` should sort into
 size_t animation_action_place(Actor *actor, float time); // index of `actor`'s actions which `time` should sort into
 size_t *animation_active_actions(Actor *actor, float time); // index of the first action which `time` lies within
-
-// animation utilities
-#ifdef ANIMATION_UTILITIES
-float lerp_f32(float a, float b, float t);
-#endif // ANIMATION_UTILITIES
 
 #endif // __FAMILIAR_ANIMATION_H__

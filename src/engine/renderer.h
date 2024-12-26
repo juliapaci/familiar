@@ -15,12 +15,6 @@
 #define MAX_VERTICES    MAX_QUADS * 4
 #define MAX_INDICES     MAX_QUADS * 6
 
-#define SHADER_PATH "src/engine/shaders/"
-#define TRIANGLE_VS SHADER_PATH "triangle.vs"
-#define TRIANGLE_FS SHADER_PATH "triangle.fs"
-#define CIRCLE_VS   SHADER_PATH "circle.vs"
-#define CIRCLE_FS   SHADER_PATH "circle.fs"
-
 typedef enum {
     OBJECT_TRIANGLE,
     OBJECT_CIRCLE,

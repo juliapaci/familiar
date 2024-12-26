@@ -6,8 +6,8 @@
 #include <engine/shader.h>
 #include <engine/camera.h>
 #include <engine/renderer.h>
-#define ANIMATION_UTILITIES
 #include <engine/animation.h>
+#include <engine/utilities.h>
 
 void animation_action(
         struct Animation *_animation,

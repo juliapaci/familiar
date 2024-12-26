@@ -5,6 +5,31 @@
 #include <stdbool.h>
 #include <stb/stb_ds.h>
 
+// TODO: dont use relative pathing
+#define SHADER_PATH "src/engine/shaders/"
+
+#define SHADER_TRIANGLE SHADERPATH_CREATE(SHADER_PATH "triangle")
+#define SHADER_CIRCLE   SHADERPATH_CREATE_FULL(SHADER_PATH "circle")
+#define SHADERPATH_CREATE_FULL(name) (ShaderPaths){ \
+    .vertex     = name".vs",                        \
+    .fragment   = name".fs",                        \
+    .geometry   = name".gs"                         \
+}
+#define SHADERPATH_CREATE(name) (ShaderPaths){  \
+    .vertex     = name".vs",                    \
+    .fragment   = name".fs",                    \
+    .geometry   = NULL                          \
+}
+
+// leaving as NULL should result in the default shader
+// (depending on the shader type of shader program)
+typedef struct {
+    const char *vertex;
+    const char *fragment;
+    const char *geometry;
+} ShaderPaths;
+
+// TODO: should we keep `ShaderPaths` tied to this?
 typedef struct {
     GLuint id;
     struct {
@@ -15,15 +40,10 @@ typedef struct {
                  // allocated in an arena
 } Shader;
 
-void shader_init(Shader *shader, const char *vertex_path, const char *fragment_path);
+void shader_init(Shader *shader, ShaderPaths paths);
 void shader_free(Shader *shader);
 
-const char *_read_file(const char *file_path);  // reads a file to a string
-// GL_COMPILE_STATUS
-// GL_LINK_STATUS
-bool _error_check(GLuint shader, GLenum pname); // checks for errors in shader source
-
-unsigned int shader_make(const char *vertex_path, const char *fragment_path); // builds the shader program
+unsigned int shader_make(ShaderPaths *paths); // builds the shader program
 void shader_update_locations(Shader *shader);
 
 // TODO: uniform update wrappers

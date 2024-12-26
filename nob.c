@@ -89,8 +89,9 @@ void build_dep_engine() {
     ENGINE_BUILD(camera);
     ENGINE_BUILD(renderer);
     ENGINE_BUILD(animation);
+    ENGINE_BUILD(utilities);
 
-    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation);
+    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities);
 }
 
 void build_dependencies(void) {

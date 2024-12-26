@@ -7,8 +7,9 @@ void render_init(Renderer *r) {
     *r = (Renderer){0};
 
     // initialise buffers
-    // triangle
-    {
+    // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader ig possibly using stb_c_lexer or maybe some reflection
+    // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
+    { // triangle
         glGenVertexArrays(1, &r->triangle.vao);
         glBindVertexArray(r->triangle.vao);
 
@@ -20,9 +21,6 @@ void render_init(Renderer *r) {
         glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
         glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
 
-        // vertex attributes
-        // TODO: auto generate vertex attributes: serialise structs to auto generate layout and shader ig possibly using stb_c_lexer or maybe some reflection
-        // TODO: make an ecs and add default transform component so we can define local space vertices for shapes and then transform them to their position (that way theres easier maths in shaders)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, uv));
@@ -31,8 +29,8 @@ void render_init(Renderer *r) {
         glEnableVertexAttribArray(2);
     }
 
-    {
-        // circle
+
+    { // circle
         glGenVertexArrays(1, &r->circle.vao);
         glBindVertexArray(r->circle.vao);
 
@@ -57,8 +55,8 @@ void render_init(Renderer *r) {
     }
 
     // shader
-    shader_init(&r->shaders[OBJECT_TRIANGLE], TRIANGLE_VS, TRIANGLE_FS);
-    shader_init(&r->shaders[OBJECT_CIRCLE], CIRCLE_VS, CIRCLE_FS);
+    shader_init(&r->shaders[OBJECT_TRIANGLE], SHADER_TRIANGLE);
+    shader_init(&r->shaders[OBJECT_CIRCLE], SHADER_CIRCLE);
     r->object_kind = OBJECT_TRIANGLE;
     glUseProgram(render_shader(r)->id);
 
@@ -84,6 +82,7 @@ void render_free(Renderer *r) {
     glDeleteVertexArrays(1, &r->triangle.vao);
 
     glDeleteBuffers(1, &r->circle.vbo);
+    glDeleteBuffers(1, &r->circle.ibo);
     glDeleteVertexArrays(1, &r->circle.vao);
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
@@ -102,8 +101,13 @@ void render_frame_begin(Renderer *r) {
 
 void render_frame_end(Renderer *r) {
 
+    // TODO: possibly keep a "different_shape" bool in `Renderer` (see `render_switch_object`)
+    //       which tells us if the object context has changed since the last frame
+    //       so we dont have to bind the same vertex arrays?
     // buffer updates and draw calls
     switch(r->object_kind) {
+        // case OBJECT_CUBE:
+        // case OBJECT_RECTANGLE:
         case OBJECT_TRIANGLE: {
             // current batch's texture
             glActiveTexture(GL_TEXTURE0 + r->texture_index);
@@ -152,6 +156,8 @@ void render_frame_end(Renderer *r) {
                 indices[i*3 + 1] = i;
                 indices[i*3 + 2] = i;
             }
+            for(size_t i = 0; i < r->circle.vertex_count * 3; i++)
+                indices[i] = i;
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
             glBufferSubData(
                 GL_ELEMENT_ARRAY_BUFFER,

@@ -5,6 +5,8 @@ layout (location = 2) in float a_radius;
 layout (location = 3) in float a_fade;
 layout (location = 4) in float a_fullness;
 
+in int subVertexID;
+
 out vec3 v_pos;
 out vec4 v_colour;
 out float v_fade;
@@ -22,7 +24,7 @@ const vec2 CANVAS[3] = vec2[3](
 );
 
 void main() {
-    vec2 local_space = CANVAS[int(gl_VertexID)];
+    vec2 local_space = CANVAS[subVertexID];
     vec3 world_space = (a_pos + vec3(a_radius * local_space, 0.0));
     // camera transforms allows us to avoid aspect ratio nonsense
     gl_Position = u_projection * u_view * u_model * vec4(world_space, 1.0);
