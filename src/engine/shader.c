@@ -37,7 +37,7 @@ bool _error_check(GLuint shader, GLenum pname) {
         glGetShaderInfoLog(shader, 512, NULL, info_log);
         fprintf(
             stderr,
-            "shader %s error:\n\t%s",
+            "shader %s error:\n\t%s\n",
             (const char *[]){"COMPILE", "LINK"}[pname - GL_COMPILE_STATUS],
             info_log
         );
@@ -49,7 +49,7 @@ bool _error_check(GLuint shader, GLenum pname) {
 GLuint _compile_shader(const char *path, GLenum kind) {
     const char *shader_source = read_file(path);
     if(shader_source == NULL) {
-        fprintf(stderr, "cannot find shader \"%s\"", path);
+        fprintf(stderr, "cannot find shader \"%s\"\n", path);
         return 0;
     }
 
@@ -64,21 +64,17 @@ GLuint _compile_shader(const char *path, GLenum kind) {
 }
 
 GLuint shader_make(ShaderPaths *paths) {
+    // TODO: NULL/non existent path check for default (what should default be?)
+
+    const bool using_geometry = paths->geometry != NULL;
     const GLuint program = glCreateProgram();
 
-    // TODO: NULL/non existent path check for default (what should default be?)
-    if(paths->geometry != NULL) {
-        const GLuint geometry = _compile_shader(paths->geometry, GL_GEOMETRY_SHADER);
+    GLuint geometry = 0;
+    if(using_geometry) {
+        geometry = _compile_shader(paths->geometry, GL_GEOMETRY_SHADER);
         if(geometry == 0)
             return 0;
         glAttachShader(program, geometry);
-
-        // TODO: is linking twice faster than checking paths->geomtry != NULL multiple times to free stuff at the end with everything else?
-        glLinkProgram(program);
-        _error_check(program, GL_LINK_STATUS);
-
-        glDetachShader(program, geometry);
-        glDeleteShader(geometry);
     }
 
     const GLuint vertex = _compile_shader(paths->vertex, GL_VERTEX_SHADER);
@@ -96,6 +92,10 @@ GLuint shader_make(ShaderPaths *paths) {
 
     glDetachShader(program, vertex);
     glDetachShader(program, fragment);
+    if(using_geometry) {
+        glDetachShader(program, geometry);
+        glDeleteShader(geometry);
+    }
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 

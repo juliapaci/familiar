@@ -10,7 +10,7 @@
 typedef struct {
     GLuint texture;
     vec3s pos;
-    size_t size;
+    float size;
 } Entity;
 
 void draw_entity(Renderer *renderer, Entity *entity) {
@@ -62,6 +62,10 @@ int main(void) {
             entity.pos.y += 4 * delta_time;
         else if(glfwGetKey(window, GLFW_KEY_S))
             entity.pos.y -= 4 * delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_Q))
+            entity.size -= delta_time;
+        else if(glfwGetKey(window, GLFW_KEY_E))
+            entity.size += delta_time;
 
         render_frame_begin(&renderer);
             render_switch_object(&renderer, OBJECT_TRIANGLE);
@@ -72,26 +76,29 @@ int main(void) {
             render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
             render_push_triangle(&renderer,
                 (RenderVertexTriangle){
-                    .pos    = {0, 0, 0},
+                    .pos    = {5, 0, 0},
                     .colour = {1, 1, 1, 1},
                     .uv     = {0, 0}
                 },
                 (RenderVertexTriangle){
-                    .pos    = {10, 0, 0},
+                    .pos    = {7, 0, 0},
                     .colour = {1, 1, 1, 1},
                     .uv     = {1, 0}
                 },
                 (RenderVertexTriangle){
-                    .pos    = {0, 10, 0},
+                    .pos    = {5, 2, 0},
                     .colour = {1, 1, 1, 1},
                     .uv     = {0, 1}
                 },
                 1
             );
-
             render_switch_object(&renderer, OBJECT_CIRCLE);
-            render_switch_3d(&renderer);
+            // TODO: why isnt this drawing in 2d?
             render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
+
+            render_switch_3d(&renderer);
+            render_draw_circle(&renderer, (Circle){0, entity.pos.y, entity.size});
+            render_draw_circle(&renderer, (Circle){entity.pos.x + 2, entity.pos.y - 2, entity.size});
         render_frame_end(&renderer);
 
         process_general_input(window);

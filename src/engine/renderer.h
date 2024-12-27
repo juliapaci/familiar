@@ -54,7 +54,6 @@ typedef struct {
 
     struct {
         GLuint vao;
-        GLuint ibo;
         GLuint vbo;
 
         RenderVertexCircle vertex_buffer[MAX_VERTICES];
@@ -114,7 +113,10 @@ void render_free(Renderer *renderer);
 
 // wrappers
 // TODO: not sure if we should restrict to amount of shaders (i.e. OBJECT_RECTANGLE doesnt have a shader but it should only be used for animation anyway so i dont know)
-inline Shader *render_shader(Renderer *r) { return r->shaders + r->object_kind; };
+inline Shader *render_shader(Renderer *r)
+    { return r->shaders + r->object_kind; };
+inline GLint render_shader_uniform(Renderer *r, char *uniform_name)
+    { return shget(render_shader(r)->uniforms, uniform_name); };
 
 // batch control
 void render_frame_begin(Renderer *renderer);

@@ -34,10 +34,6 @@ void render_init(Renderer *r) {
         glGenVertexArrays(1, &r->circle.vao);
         glBindVertexArray(r->circle.vao);
 
-        glGenBuffers(1, &r->circle.ibo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-
         glGenBuffers(1, &r->circle.vbo);
         glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
         glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
@@ -63,13 +59,13 @@ void render_init(Renderer *r) {
     // textures
     // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
     GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    glUniform1iv(shget(render_shader(r)->uniforms, "u_textures[0]"), 8, textures);
+    glUniform1iv(render_shader_uniform(r, "u_textures[0]"), 8, textures);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // default "no texture" as index 0
     r->textures[r->texture_count++] = render_get_white_texture();
-    glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), 0);
+    glUniform1i(render_shader_uniform(r, "u_texture_index"), 0);
 
     // camera
     r->camera = camera_init();
@@ -82,7 +78,6 @@ void render_free(Renderer *r) {
     glDeleteVertexArrays(1, &r->triangle.vao);
 
     glDeleteBuffers(1, &r->circle.vbo);
-    glDeleteBuffers(1, &r->circle.ibo);
     glDeleteVertexArrays(1, &r->circle.vao);
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
@@ -92,6 +87,7 @@ void render_free(Renderer *r) {
 }
 
 extern Shader *render_shader(Renderer *r);
+extern GLint render_shader_uniform(Renderer *r, char *uniform_name);
 
 void render_frame_begin(Renderer *r) {
     r->triangle.vertex_count = 0;
@@ -112,7 +108,7 @@ void render_frame_end(Renderer *r) {
             // current batch's texture
             glActiveTexture(GL_TEXTURE0 + r->texture_index);
             glBindTexture(GL_TEXTURE_2D, r->textures[r->texture_index]);
-            glUniform1i(shget(render_shader(r)->uniforms, "u_texture_index"), r->texture_index);
+            glUniform1i(render_shader_uniform(r, "u_texture_index"), r->texture_index);
 
             glBindVertexArray(r->triangle.vao);
 
@@ -150,29 +146,8 @@ void render_frame_end(Renderer *r) {
                 r->circle.vertex_buffer
             );
 
-            GLuint indices[r->circle.vertex_count * 3];
-            for(size_t i = 0; i < r->circle.vertex_count; i++) {
-                indices[i*3 + 0] = i;
-                indices[i*3 + 1] = i;
-                indices[i*3 + 2] = i;
-            }
-            for(size_t i = 0; i < r->circle.vertex_count * 3; i++)
-                indices[i] = i;
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r->circle.ibo);
-            glBufferSubData(
-                GL_ELEMENT_ARRAY_BUFFER,
-                0,
-                sizeof(indices),
-                indices
-            );
-
             // TODO: instancing?
-            glDrawElements(
-                GL_TRIANGLES,
-                r->circle.vertex_count * 3,
-                GL_UNSIGNED_INT,
-                NULL
-            );
+            glDrawArrays(GL_TRIANGLES, 0, r->circle.vertex_count);
         } break;
 
         default: return;
@@ -185,7 +160,7 @@ void render_frame_flush(Renderer *r) {
 
     render_frame_end(r);
     render_frame_begin(r);
-    r->texture_index = 0;
+    r->texture_index = render_get_white_texture();
 }
 
 void render_switch_object(Renderer *r, ObjectKind kind) {
@@ -212,6 +187,7 @@ void render_switch_projection(Renderer *r, Projection projection) {
                 FAR_PLANE
             )
         : // PROJECTION_ORTHOGRAPHIC
+          // TODO: prob dont want camera fov to influence this
             glms_ortho(
                 -viewport[2]/(2.0 * r->camera.fov),
                 viewport[2]/(2.0 * r->camera.fov),
@@ -221,10 +197,9 @@ void render_switch_projection(Renderer *r, Projection projection) {
             )
         ;
 
-
     glUseProgram(render_shader(r)->id);
     glUniformMatrix4fv(
-        shget(render_shader(r)->uniforms, "u_projection"),
+        render_shader_uniform(r, "u_projection"),
         1,
         GL_FALSE,
         (const GLfloat *)&projection_matrix.raw
@@ -239,13 +214,13 @@ void render_switch_2d(Renderer *r) {
     const mat4s view = GLMS_MAT4_IDENTITY;
     const mat4s model = GLMS_MAT4_IDENTITY;
     glUniformMatrix4fv(
-        shget(render_shader(r)->uniforms, "u_view"),
+        render_shader_uniform(r, "u_view"),
         1,
         GL_FALSE,
         (const GLfloat *)&view.raw
     );
     glUniformMatrix4fv(
-        shget(render_shader(r)->uniforms, "u_model"),
+        render_shader_uniform(r, "u_model"),
         1,
         GL_FALSE,
         (const GLfloat *)&view.raw
@@ -347,9 +322,12 @@ void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle 
 }
 
 void render_push_circle(Renderer *r, RenderVertexCircle point) {
-    render_submit_batch(r, 0); // TODO: 0 or 1?
+    // technically the texture doesnt matter so 0 works fine.
+    // but just incase for the future ill use the white texture
+    render_submit_batch(r, render_get_white_texture());
 
-    r->circle.vertex_buffer[r->circle.vertex_count++] = point;
+    for(uint8_t _ = 0; _ < 3; _++)
+        r->circle.vertex_buffer[r->circle.vertex_count++] = point;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
