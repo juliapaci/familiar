@@ -152,6 +152,10 @@ GLuint render_get_white_texture(void);
 GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);
 GLuint render_texture_load_file(const char *path);
 void render_texture_free(GLuint texture);
+GLint render_texture_channels_to_format(int32_t channels);
+int32_t render_texture_format_to_channels(GLint format);
+// save texture to a bitmap image for debugging purposes
+void render_texture_debug_save(GLuint texture, GLsizei width, GLsizei height, int32_t channels);
 
 void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size);
 void render_font_load_file(RenderFont *font, const char *path, float size);

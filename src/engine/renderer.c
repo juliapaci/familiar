@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
 #include <string.h>
 
 void render_init(Renderer *r) {
@@ -475,9 +476,8 @@ GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    GLint format = GL_RGB + (GL_RGBA - GL_RGB)*(channels == 4);
+    GLint format = render_texture_channels_to_format(channels);
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-    stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     return texture;
@@ -487,13 +487,45 @@ GLuint render_texture_load_file(const char *path) {
     stbi_set_flip_vertically_on_load(true);
     int32_t width, height, channels;
     uint8_t *data = stbi_load(path, &width, &height, &channels, 0);
+    GLuint texture = render_texture_load(data, width, height, channels);
+    stbi_image_free(data);
 
-    return render_texture_load(data, width, height, channels);
+    return texture;
 }
 
 void render_texture_free(GLuint texture) {
     glDeleteTextures(1, &texture);
 }
+
+GLint render_texture_channels_to_format(int32_t channels) {
+    return GL_RGB + (channels == 4) - (channels == 1)*4;
+
+    // GLint format = 0;
+    // switch(channels) {
+    //     case 1: format = GL_RED; break;
+    //     case 3: format = GL_RGB; break;
+    //     case 4: format = GL_RGBA; break;
+    // }
+}
+
+int32_t render_texture_format_to_channels(GLint format) {
+    // TOOD: implement. its not yet been needed so i havnt bothered
+}
+
+void render_texture_debug_save(GLuint texture, GLsizei width, GLsizei height, int32_t channels) {
+    GLuint fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+    uint8_t bitmap[width * height * channels];
+    glReadPixels(0, 0, height, width, render_texture_channels_to_format(channels), GL_UNSIGNED_BYTE, bitmap);
+
+    stbi_write_bmp("debug_texture", width, height, channels, bitmap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 
 void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size) {
     // TODO: flip bitmap?
@@ -535,6 +567,8 @@ void render_font_load_file(RenderFont *font, const char *path, float size) {
     fclose(ttf);
 
     render_font_load(font, data, length, size);
+
+    render_texture_debug_save(font->texture, 512, 512, 1);
 }
 
 void render_font_free(RenderFont *font) {
