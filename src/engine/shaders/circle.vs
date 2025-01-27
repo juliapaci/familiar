@@ -14,17 +14,20 @@ uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
-
+// the perfect size triangle which a circle can fit into
+const vec2 CANVAS[3] = vec2[3](
+    vec2( 0.0   , 2.0),
+    vec2( 1.7321,-1.0), // sqrt(3)
+    vec2(-1.7321,-1.0)
+);
 
 void main() {
+    vec2 local_space = CANVAS[gl_VertexID%3];
+    vec3 world_space = (a_pos + vec3(a_radius * local_space, 0.0));
     // camera transforms allows us to avoid aspect ratio nonsense
-    gl_Position = u_projection * u_view * u_model * vec4(a_pos, 1.0);
+    gl_Position = u_projection * u_view * u_model * vec4(world_space, 1.0);
 
-    float pointsize = a_radius * 100.;
-    vec4 camera_pos = u_view * u_model * vec4(vec3(0), 1);
-    gl_PointSize = pointsize / (length(camera_pos.xyz) + 1.0);
-
-    v_pos = vec3(1.0);
+    v_pos = vec3(local_space, 0.0);
     v_colour = a_colour;
     v_fade = a_fade;
     v_fullness = a_fullness;

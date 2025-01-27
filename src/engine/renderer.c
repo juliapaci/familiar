@@ -148,7 +148,7 @@ void render_frame_end(Renderer *r) {
             );
 
             // TODO: instancing?
-            glDrawArrays(GL_POINTS, 0, r->circle.vertex_count);
+            glDrawArrays(GL_TRIANGLES, 0, r->circle.vertex_count);
         } break;
 
         default: return;
@@ -171,12 +171,6 @@ void render_switch_object(Renderer *r, ObjectKind kind) {
     render_frame_flush(r);
     r->object_kind = kind;
     glUseProgram(render_shader(r)->id);
-    // TODO: use ubo so we dont have to reupdate the same camera unfirms for different shaders
-    switch(kind) {
-        case OBJECT_TRIANGLE: glDisable(GL_PROGRAM_POINT_SIZE); break;
-        case OBJECT_CIRCLE: glEnable(GL_PROGRAM_POINT_SIZE); break;
-        default: break;
-    }
 }
 
 void render_switch_projection(Renderer *r, Projection projection) {
@@ -197,9 +191,9 @@ void render_switch_projection(Renderer *r, Projection projection) {
           // TODO: prob dont want camera fov to influence this
             glms_ortho(
                 -viewport[2]/(2.0 * r->camera.fov),
-                 viewport[2]/(2.0 * r->camera.fov),
+                viewport[2]/(2.0 * r->camera.fov),
                 -viewport[3]/(2.0 * r->camera.fov),
-                 viewport[3]/(2.0 * r->camera.fov),
+                viewport[3]/(2.0 * r->camera.fov),
                 -0.1f, 0.1f
             )
         ;
@@ -219,8 +213,15 @@ void render_switch_2d(Renderer *r) {
     render_switch_projection(r, PROJECTION_ORTHOGRAPHIC);
     glDisable(GL_DEPTH_TEST);
     const mat4s view = GLMS_MAT4_IDENTITY;
+    const mat4s model = GLMS_MAT4_IDENTITY;
     glUniformMatrix4fv(
         render_shader_uniform(r, "u_view"),
+        1,
+        GL_FALSE,
+        (const GLfloat *)&view.raw
+    );
+    glUniformMatrix4fv(
+        render_shader_uniform(r, "u_model"),
         1,
         GL_FALSE,
         (const GLfloat *)&view.raw
@@ -326,7 +327,8 @@ void render_push_circle(Renderer *r, RenderVertexCircle point) {
     // but just incase for the future ill use the white texture
     render_submit_batch(r, render_get_white_texture());
 
-    r->circle.vertex_buffer[r->circle.vertex_count++] = point;
+    for(uint8_t _ = 0; _ < 3; _++)
+        r->circle.vertex_buffer[r->circle.vertex_count++] = point;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
@@ -566,7 +568,7 @@ void render_font_load_file(RenderFont *font, const char *path, float size) {
 
     render_font_load(font, data, length, size);
 
-    // render_texture_debug_save(font->texture, 512, 512, 1);
+    render_texture_debug_save(font->texture, 512, 512, 1);
 }
 
 void render_font_free(RenderFont *font) {
