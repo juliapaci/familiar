@@ -93,7 +93,6 @@ int main(void) {
                 1
             );
             render_switch_object(&renderer, OBJECT_CIRCLE);
-            // TODO: why isnt this drawing in 2d?
             render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
 
             render_switch_3d(&renderer);
