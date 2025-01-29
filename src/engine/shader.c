@@ -103,7 +103,7 @@ GLuint shader_make(ShaderPaths *paths) {
 }
 
 void shader_update_locations(Shader *shader) {
-    GLint uniform_amount = 0;
+    GLint uniform_amount;
     glGetProgramInterfaceiv(shader->id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniform_amount);
 
     const GLenum properties[3] = {GL_TYPE, GL_NAME_LENGTH, GL_LOCATION};

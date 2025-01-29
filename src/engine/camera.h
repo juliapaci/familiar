@@ -9,6 +9,11 @@
 #define FAR_PLANE 100.0f
 
 typedef struct {
+    mat4s projection;
+    mat4s view;
+} CameraUniforms;
+
+typedef struct {
     vec3s position;
     vec3s front;
 
@@ -23,6 +28,8 @@ typedef struct {
     float last_y;
 
     bool enabled;
+
+    CameraUniforms uniforms;
 } Camera;
 
 extern const vec3s up_unit;
@@ -30,9 +37,9 @@ extern const float camera_speed;
 extern const Camera CAMERA_DEFAULT;
 Camera camera_init(void);
 
-// updates camera shader projection transformation matrices
+// updates camera projection transformation matrices in `camera.uniforms`
 // NOTE: loads a perspective projection
-void camera_update(Camera *camera, Shader *shader);
+void camera_update(Camera *camera);
 
 // glfw stuff
 void _mouse_callback(GLFWwindow *window, double x_pos, double y_pos);

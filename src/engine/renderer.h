@@ -18,6 +18,7 @@
 typedef enum {
     OBJECT_TRIANGLE,
     OBJECT_CIRCLE,
+
     OBJECT_RECTANGLE,
     OBJECT_CUBE
 } ObjectKind;
@@ -69,6 +70,7 @@ typedef struct {
     // shader (triangle, circle)
     ObjectKind object_kind;
     Shader shaders[2];
+    GLuint ubo;
 
     // camera
     Camera camera;
@@ -108,6 +110,8 @@ typedef struct {
     float radius;
 } Circle;
 
+// TODO: Sphere/Ellipse
+
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
@@ -136,7 +140,9 @@ typedef enum {
 void render_switch_projection(Renderer *r, Projection projection);
 void render_switch_2d(Renderer *r);
 void render_switch_3d(Renderer *r);
+void render_camera_uniform_sync(Renderer *r);
 
+// drawing stuff
 void render_populate_index_buffer(Renderer *r, size_t index_count);
 void render_submit_batch(Renderer *r, GLuint texture); // update batch information like current texture and flushes the batch if certain criteria is met
 void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture);
@@ -148,6 +154,7 @@ void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 void render_draw_circle(Renderer *r, Circle circle);
 
+// texture
 GLuint render_get_white_texture(void);
 GLuint render_texture_load(uint8_t *data, int32_t width, int32_t height, int32_t channels);
 GLuint render_texture_load_file(const char *path);
@@ -157,6 +164,7 @@ int32_t render_texture_format_to_channels(GLint format);
 // save texture to a bitmap image for debugging purposes
 void render_texture_debug_save(GLuint texture, GLsizei width, GLsizei height, int32_t channels);
 
+// font
 void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size);
 void render_font_load_file(RenderFont *font, const char *path, float size);
 void render_font_free(RenderFont *font);

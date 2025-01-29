@@ -52,25 +52,44 @@ void render_init(Renderer *r) {
     }
 
     // shader
-    shader_init(&r->shaders[OBJECT_TRIANGLE], SHADER_TRIANGLE);
-    shader_init(&r->shaders[OBJECT_CIRCLE], SHADER_CIRCLE);
-    r->object_kind = OBJECT_TRIANGLE;
-    glUseProgram(render_shader(r)->id);
+    {
+        shader_init(&r->shaders[OBJECT_TRIANGLE], SHADER_TRIANGLE);
+        shader_init(&r->shaders[OBJECT_CIRCLE], SHADER_CIRCLE);
+        r->object_kind = OBJECT_TRIANGLE;
+        glUseProgram(render_shader(r)->id);
+
+        // setup ubo
+        glGenBuffers(1, &r->ubo);
+        glBindBuffer(GL_UNIFORM_BUFFER, r->ubo);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(CameraUniforms), NULL, GL_DYNAMIC_DRAW);
+
+        for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); ++i) {
+            const GLuint id = r->shaders[i].id;
+            const GLuint camera_index = glGetUniformBlockIndex(id, "Camera");
+            glUniformBlockBinding(id, camera_index, 0);
+        }
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, r->ubo);
+    }
 
     // textures
-    // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
-    GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    glUniform1iv(render_shader_uniform(r, "u_textures[0]"), 8, textures);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    {
+        // TODO: GL_MAX_TEXTURE_IMAGE_UNITS but also in fragment shader
+        GLint textures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        glUniform1iv(render_shader_uniform(r, "u_textures[0]"), 8, textures);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // default "no texture" as index 0
-    r->textures[r->texture_count++] = render_get_white_texture();
-    glUniform1i(render_shader_uniform(r, "u_texture_index"), 0);
+        // default "no texture" as index 0
+        r->textures[r->texture_count++] = render_get_white_texture();
+        glUniform1i(render_shader_uniform(r, "u_texture_index"), 0);
+    }
 
     // camera
-    r->camera = camera_init();
-    camera_update(&r->camera, render_shader(r));
+    {
+        r->camera = camera_init();
+        camera_update(&r->camera);
+        render_camera_uniform_sync(r);
+    }
 }
 
 void render_free(Renderer *r) {
@@ -83,6 +102,7 @@ void render_free(Renderer *r) {
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
         shader_free(&r->shaders[i]);
+    glDeleteBuffers(1, &r->ubo);
 
     glDeleteTextures(1, &r->textures[0]); // white texture
 }
@@ -191,48 +211,37 @@ void render_switch_projection(Renderer *r, Projection projection) {
           // TODO: prob dont want camera fov to influence this
             glms_ortho(
                 -viewport[2]/(2.0 * r->camera.fov),
-                viewport[2]/(2.0 * r->camera.fov),
+                 viewport[2]/(2.0 * r->camera.fov),
                 -viewport[3]/(2.0 * r->camera.fov),
-                viewport[3]/(2.0 * r->camera.fov),
+                 viewport[3]/(2.0 * r->camera.fov),
                 -0.1f, 0.1f
             )
         ;
 
-    glUseProgram(render_shader(r)->id);
-    glUniformMatrix4fv(
-        render_shader_uniform(r, "u_projection"),
-        1,
-        GL_FALSE,
-        (const GLfloat *)&projection_matrix.raw
-    );
-
+    r->camera.uniforms.projection = projection_matrix;
+    render_camera_uniform_sync(r);
 }
 
 void render_switch_2d(Renderer *r) {
     // projection change flushes flushes aswell
     render_switch_projection(r, PROJECTION_ORTHOGRAPHIC);
     glDisable(GL_DEPTH_TEST);
-    const mat4s view = GLMS_MAT4_IDENTITY;
-    const mat4s model = GLMS_MAT4_IDENTITY;
-    glUniformMatrix4fv(
-        render_shader_uniform(r, "u_view"),
-        1,
-        GL_FALSE,
-        (const GLfloat *)&view.raw
-    );
-    glUniformMatrix4fv(
-        render_shader_uniform(r, "u_model"),
-        1,
-        GL_FALSE,
-        (const GLfloat *)&view.raw
-    );
+    r->camera.uniforms.view = GLMS_MAT4_IDENTITY;
+    render_camera_uniform_sync(r);
 }
 
 void render_switch_3d(Renderer *r) {
     // flush
     render_frame_flush(r);
     glEnable(GL_DEPTH_TEST);
-    camera_update(&r->camera, render_shader(r));
+    camera_update(&r->camera);
+    render_camera_uniform_sync(r);
+}
+
+void render_camera_uniform_sync(Renderer *r) {
+    glBindBuffer(GL_UNIFORM_BUFFER, r->ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), &r->camera.uniforms.projection.raw);
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), &r->camera.uniforms.view.raw);
 }
 
 void render_submit_batch(Renderer *r, GLuint texture) {
@@ -568,7 +577,7 @@ void render_font_load_file(RenderFont *font, const char *path, float size) {
 
     render_font_load(font, data, length, size);
 
-    render_texture_debug_save(font->texture, 512, 512, 1);
+    // render_texture_debug_save(font->texture, 512, 512, 1);
 }
 
 void render_font_free(RenderFont *font) {

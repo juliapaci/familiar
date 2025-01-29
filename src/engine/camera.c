@@ -1,6 +1,7 @@
 #include <engine/general.h>
 
 #include "camera.h"
+extern struct CameraUniformsRaw camera_uniforms_to_raw(CameraUniforms *u);
 
 const vec3s up_unit = {0.0f, 1.0f, 0.0f};
 const float camera_speed = 2.5f;
@@ -17,7 +18,9 @@ const Camera CAMERA_DEFAULT = {
     .last_x = 0.0f,
     .last_y = 0.0f,
 
-    .enabled = true
+    .enabled = true,
+
+    .uniforms = {0}
 };
 
 Camera camera_init(void) {
@@ -40,7 +43,7 @@ Camera camera_init(void) {
     return camera;
 }
 
-void camera_update(Camera *camera, Shader *shader) {
+void camera_update(Camera *camera) {
     // if(!camera->enabled)
     //     return;
     // glEnable(GL_DEPTH_TEST);
@@ -63,12 +66,7 @@ void camera_update(Camera *camera, Shader *shader) {
         up_unit
     );
 
-    const mat4s model = GLMS_MAT4_IDENTITY;
-
-    glUseProgram(shader->id);
-    glUniformMatrix4fv(shget(shader->uniforms, "u_projection"), 1, GL_FALSE, (const GLfloat *)projection.raw);
-    glUniformMatrix4fv(shget(shader->uniforms, "u_view"), 1, GL_FALSE, (const GLfloat *)view.raw);
-    glUniformMatrix4fv(shget(shader->uniforms, "u_model"), 1, GL_FALSE, (const GLfloat *)model.raw);
+    camera->uniforms = (CameraUniforms){ projection, view };
 }
 
 void process_camera_input(GLFWwindow *window, Camera *camera) {
