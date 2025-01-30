@@ -584,6 +584,7 @@ void render_font_free(RenderFont *font) {
     glDeleteTextures(1, &font->texture);
 }
 
+// TODO: use sdf to render fonts
 void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text) {
     for(size_t i = 0; i < strlen(text); i++) {
         const stbtt_packedchar *const c = &font->cdata[text[i] - 32];

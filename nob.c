@@ -27,7 +27,7 @@
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "include")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
+#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "gl")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -50,7 +50,7 @@ Cstr all_c_files_in_dir(const char *dir_path) {
 }
 
 void build_dep_glad(void) {
-    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "include", "glad", "glad.c"));
+    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
 }
 
 void build_dep_stb(void) {

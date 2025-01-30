@@ -34,9 +34,9 @@ Camera camera_init(void) {
     camera.last_y = height/2.0f;
 
     glm_lookat(
-        (vec3) {0.0f, 0.0f, -0.5f},
         (vec3) {0.0f, 0.0f, 0.0f},
-        (vec3) {0.0f, 1.0f, 0.0f},
+        (vec3) {0.0f, 0.0f, 0.0f},
+        (vec3) {0.0f, 0.0f, 0.0f},
         (mat4) GLM_MAT4_IDENTITY_INIT
     );
 

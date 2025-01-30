@@ -63,6 +63,7 @@ inline void _animation_action_default(
         float _t,
         void *_extra_args
 ) { animation_render_actor(animation, actor); };
+// TODO: make a default action that takes another `Actor` and lerps to it. like a keyframe
 
 Actor *animation_actor_add(Animation *animation, void *actor, const ObjectKind kind, float time);
 void animation_action_add(Actor *actor, Action *action);
