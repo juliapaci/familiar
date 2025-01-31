@@ -4,7 +4,6 @@
 #include <cglm/struct.h>
 #include <glad/glad.h>
 #include <engine/camera.h>
-#include <stb/stb_truetype.h>
 #include <engine/shader.h>
 
 // TODO: some way for users to describe static data
@@ -75,16 +74,6 @@ typedef struct {
     // camera
     Camera camera;
 } Renderer;
-
-typedef struct {
-    GLuint texture;
-    stbtt_packedchar cdata[95];
-    float scale;
-    float size;
-    int32_t ascent;
-    int32_t descent;
-    int32_t baseline;
-} RenderFont;
 
 typedef struct {
     float x;
@@ -163,13 +152,5 @@ GLint render_texture_channels_to_format(int32_t channels);
 int32_t render_texture_format_to_channels(GLint format);
 // save texture to a bitmap image for debugging purposes
 void render_texture_debug_save(GLuint texture, GLsizei width, GLsizei height, int32_t channels);
-
-// font
-void render_font_load(RenderFont *font, const uint8_t *data, size_t data_size, float font_size);
-void render_font_load_file(RenderFont *font, const char *path, float size);
-void render_font_free(RenderFont *font);
-
-// textures of characters making up `text`
-void render_draw_text(Renderer *r, RenderFont *font, vec2s pos, const char *text);
 
 #endif // __FAMILIAR_RENDERER_H__

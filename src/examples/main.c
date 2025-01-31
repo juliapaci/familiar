@@ -40,9 +40,6 @@ int main(void) {
     render_init(&renderer);
     set_camera_callback(window, &renderer.camera);
 
-    RenderFont font;
-    render_font_load_file(&font, "assets/OpenSans-VariableFont_wdth,wght.ttf", 10);
-
     Entity entity = {
         .texture    = render_texture_load_file("assets/awesomeface.png"),
         .pos        = {0, 0, 0},
@@ -73,7 +70,6 @@ int main(void) {
             draw_entity(&renderer, &entity);
 
             render_switch_2d(&renderer);
-            render_draw_text(&renderer, &font, (vec2s){-10, 0}, "a");
             render_push_triangle(&renderer,
                 (RenderVertexTriangle){
                     .pos    = {5, 0, 0},
@@ -107,7 +103,6 @@ int main(void) {
     }
 
     free_entity(&entity);
-    render_font_free(&font);
     render_free(&renderer);
     glfwTerminate();
     return 0;

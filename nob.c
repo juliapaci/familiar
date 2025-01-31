@@ -1,3 +1,5 @@
+// TODO: upgrade to nob (new tsoding build system. successor to nobuild)
+
 #define NOBUILD_IMPLEMENTATION
 #include "nob.h"
 
@@ -23,6 +25,8 @@
 #define EXAMPLE "examples"
 #define THIRD_PARTY "external"
 #define BUILD "build"
+#define ZIGLIB "lib"
+#define ZIGBIN "bin"
 
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
@@ -83,6 +87,7 @@ void build_dep_stb(void) {
     CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
 void build_dep_engine() {
+    INFO("ENGINE: building c parts");
     // TODO: simplify further
     ENGINE_BUILD(general);
     ENGINE_BUILD(shader);
@@ -91,7 +96,11 @@ void build_dep_engine() {
     ENGINE_BUILD(animation);
     ENGINE_BUILD(utilities);
 
-    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities);
+    INFO("ENGINE: buliding zig parts");
+    CMD("zig", "build", "--prefix", "build");
+
+    // assume the zig stuff has already been build. e.g. we can add "text.a" because it should be built by the zig build system already
+    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities, PATH(BUILD, ZIGLIB, "libtext.a"));
 }
 
 void build_dependencies(void) {
@@ -127,14 +136,14 @@ void create_compile_commands(void) {
     }
 
     fprintf(json,
-        "["                                     "\n"
-        "\t"    "{"                             "\n"
-        "\t\t"      "\"directory\": \"%s\","    "\n"
+        "["                                                 "\n"
+        "\t"    "{"                                         "\n"
+        "\t\t"      "\"directory\": \"%s\","                "\n"
         // stupid formatting but works cause order of appending `LDFLAGS_DELIM`
         "\t\t"      "\"arguments\": [\"/usr/bin/cc%s\"],"   "\n"
-        "\t\t"      "\"file\": \"N/A\""         "\n"
-        "\t"    "}"                             "\n"
-        "]",
+        "\t\t"      "\"file\": \"N/A\""                     "\n"
+        "\t"    "}"                                         "\n"
+        "]\n",
         GETCWD(),
         ldflags_args
     );
@@ -151,9 +160,13 @@ int main(int argc, char **argv) {
     INFO("building dependencies"); build_dependencies();
     INFO("building examples"); build_examples();
 
-    if(argc >= 3 && strcmp(argv[1], "example") == 0)
-        CMD(PATH(BUILD, CONCAT("example_", argv[2])));
-    else
+    if(argc >= 3 && strcmp(argv[1], "example") == 0) {
+        Cstr prog = CONCAT("example_", argv[2]);
+        // this doesnt work because the first one can panic with CMD
+        // CMD(PATH(BUILD, prog), "||", PATH(BUILD, ZIGBIN, prog));
+        if(path_exists(PATH(BUILD, prog))) CMD(PATH(BUILD, prog));
+        else if(path_exists(PATH(BUILD, ZIGBIN, prog))) CMD(PATH(BUILD, ZIGBIN, prog));
+    } else
         INFO("note that you can run nob examples with \"%s example <example name>\"", argv[0]);
 
     return 0;
