@@ -6,5 +6,5 @@ pub fn main() !void {
     var fr = try text.init("assets/OpenSans-VariableFont_wdth,wght.ttf");
     defer fr.deinit();
 
-    std.log.debug("test", .{});
+    try fr.parseFont();
 }
