@@ -15,7 +15,7 @@
 #define DEFINE_MACRO(name) "-D" #name "=" STRINGIFY(DEBUG)
 #define OPENGL_DEBUG_APP DEFINE_MACRO(OPENGL_DEBUG_APP)
 #else
-#define OPTIMISATION "-O3"
+#define OPTIMISATION "-O2"
 #define OPENGL_DEBUG_APP ""
 #endif // DEBUG
 
@@ -31,7 +31,7 @@
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "gl")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-l:glad.o", "-lglfw", "-lGL", "-lm", "-l"ENGINE, "-l:stb.o"
+#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "gl")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-lglad", "-lglfw", "-lGL", "-lm", "-lengine", "-lstb"
 #define LDFLAGS_DELIM "\", \""
 
 Cstr all_c_files_in_dir(const char *dir_path) {
@@ -55,6 +55,7 @@ Cstr all_c_files_in_dir(const char *dir_path) {
 
 void build_dep_glad(void) {
     CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
+    CMD("ar", "rcs", PATH(BUILD, "libglad.a"), PATH(BUILD, "glad.o"));
 }
 
 void build_dep_stb(void) {
@@ -80,27 +81,47 @@ void build_dep_stb(void) {
     fclose(impl);
 
     CMD("cc", CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, "stb.o"), PATH(BUILD, "stb_implementations.c"));
+    CMD("ar", "rcs", PATH(BUILD, "libstb.a"), PATH(BUILD, "stb.o"));
 }
 
-#define ENGINE_BUILD(translation_unit) \
+#define ENGINE_BUILD_STATIC(translation_unit) \
     const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
     CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
+#define ENGINE_BUILD_DYNAMIC(translation_unit) \
+    const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
+    CMD("cc", CFLAGS, "-fpic", OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
+
 void build_dep_engine() {
-    INFO("ENGINE: building c parts");
     // TODO: simplify further
-    ENGINE_BUILD(general);
-    ENGINE_BUILD(shader);
-    ENGINE_BUILD(camera);
-    ENGINE_BUILD(renderer);
-    ENGINE_BUILD(animation);
-    ENGINE_BUILD(utilities);
+    INFO("ENGINE: building c parts");
+    {
+        ENGINE_BUILD_STATIC(general);
+        ENGINE_BUILD_STATIC(shader);
+        ENGINE_BUILD_STATIC(camera);
+        ENGINE_BUILD_STATIC(renderer);
+        ENGINE_BUILD_STATIC(animation);
+        ENGINE_BUILD_STATIC(utilities);
 
-    INFO("ENGINE: buliding zig parts");
-    CMD("zig", "build", "--prefix", "build");
+        CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities);
 
-    // assume the zig stuff has already been build. e.g. we can add "text.a" because it should be built by the zig build system already
-    CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities, PATH(BUILD, ZIGLIB, "libtext.a"));
+        INFO("ENGINE: buliding zig parts");
+        CMD("zig", "build", "--prefix", "build");
+
+        CMD("ar", "rcs", PATH(BUILD, "libengine.a"), PATH(BUILD, ZIGLIB, "libtext.a"));
+    }
+
+#if 0
+    {
+        ENGINE_BUILD_DYNAMIC(general);
+        ENGINE_BUILD_DYNAMIC(shader);
+        ENGINE_BUILD_DYNAMIC(camera);
+        ENGINE_BUILD_DYNAMIC(renderer);
+        ENGINE_BUILD_DYNAMIC(animation);
+        ENGINE_BUILD_DYNAMIC(utilities);
+        CMD("cc", "-shared", "-o", PATH(BUILD, "libengine.so"), general, shader, camera, renderer, animation, utilities, PATH(BUILD, ZIGLIB, "libtext.a"));
+    }
+#endif
 }
 
 void build_dependencies(void) {

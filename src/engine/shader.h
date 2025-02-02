@@ -15,13 +15,13 @@
     .fragment   = name".fs",                        \
     .geometry   = name".gs"                         \
 }
-#define SHADERPATH_CREATE(name) (ShaderPaths){  \
-    .vertex     = name".vs",                    \
-    .fragment   = name".fs",                    \
-    .geometry   = NULL                          \
+#define SHADERPATH_CREATE(name) (ShaderPaths){      \
+    .vertex     = name".vs",                        \
+    .fragment   = name".fs",                        \
+    .geometry   = NULL                              \
 }
 
-// leaving as NULL should result in the default shader
+// leaving as NULL should result in the default shader path
 // (depending on the shader type of shader program)
 typedef struct {
     const char *vertex;

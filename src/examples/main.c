@@ -1,7 +1,3 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <GL/glext.h>
-
 #include <engine/general.h>
 #include <engine/shader.h>
 #include <engine/camera.h>
