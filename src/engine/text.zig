@@ -121,65 +121,58 @@ pub const GlyphDescription = packed struct {
 
         // NOTE: should be deinitialised
         fn parse(fr: *FontReader, description: GlyphDescription) !@This() {
-            std.debug.print("{any}\n", .{description});
             const allocator = std.heap.page_allocator;
-            const contour_amount_usize = @as(usize, @intCast(description.contour_amount));
             const reader = fr.file.reader();
+
+            var end_contour_points = try std.ArrayList(u16).initCapacity(allocator, @intCast(description.contour_amount));
+            for(0..end_contour_points.capacity) |_| end_contour_points.appendAssumeCapacity(reader.readInt(u16, .big) catch unreachable);
+            const points_amount = end_contour_points.getLast() + 1;
+
+            const instruction_length = reader.readInt(u16, .big) catch unreachable;
+
             var data: @This() = .{
-                .end_contour_points = try std.ArrayList(u16).initCapacity(allocator, contour_amount_usize),
-                .instruction_length = undefined,
-                .instructions       = undefined,
-                .flags              = try std.ArrayList(OutlineFlags).initCapacity(allocator, contour_amount_usize),
-                .x_coords           = try std.ArrayList(i16).initCapacity(allocator, contour_amount_usize),
-                .y_coords           = try std.ArrayList(i16).initCapacity(allocator, contour_amount_usize)
+                .end_contour_points = end_contour_points,
+                .instruction_length = instruction_length,
+                .instructions       = try std.ArrayList(u8).initCapacity(allocator, instruction_length),
+                .flags              = try std.ArrayList(OutlineFlags).initCapacity(allocator, points_amount),
+                .x_coords           = try std.ArrayList(i16).initCapacity(allocator, points_amount),
+                .y_coords           = try std.ArrayList(i16).initCapacity(allocator, points_amount)
             };
 
-            for(0..contour_amount_usize) |_| try data.end_contour_points.append(reader.readInt(u16, .big) catch unreachable);
-            data.instruction_length = reader.readInt(u16, .big) catch unreachable;
-            data.instructions = try std.ArrayList(u8).initCapacity(allocator, data.instruction_length);
-            for(0..@intCast(data.instruction_length)) |_| try data.instructions.append(reader.readByte() catch unreachable);
+            for(0..data.instruction_length) |_| data.instructions.appendAssumeCapacity(reader.readByte() catch unreachable);
 
-
-            var all_flags = try std.ArrayList(OutlineFlags).initCapacity(allocator, contour_amount_usize);
-            while (all_flags.items.len < description.contour_amount) {
+            while (data.flags.items.len < points_amount) {
                 const flags = OutlineFlags.parse(fr) catch unreachable;
-                try all_flags.append(flags);
-                if (flags.repeat) {
-                    const amount = reader.readByte() catch unreachable;
-                    for (0..amount) |_| try all_flags.append(flags);
-                }
+                data.flags.appendAssumeCapacity(flags);
+                if (flags.repeat) data.flags.appendNTimesAssumeCapacity(flags, reader.readByte() catch unreachable);
             }
 
-            for (all_flags.items) |flags| {
+            for (data.flags.items) |flags| {
                 var x_coord = data.x_coords.getLastOrNull() orelse 0;
 
-                if(!flags.special_x) {
-                    if(!flags.x_short_vector) {
-                        x_coord += reader.readInt(i16, .big) catch unreachable;
-                    } else {
-                        const offset = reader.readByte() catch unreachable;
-                        const signedness: i16 = @as(i16, @intFromBool(flags.special_x)) * 2 - 1;
-                        x_coord += offset * signedness;
-                    }
+                if(!flags.x_short_vector and !flags.special_x) {
+                    x_coord += reader.readInt(i16, .big) catch unreachable;
+                } else if(flags.x_short_vector) {
+                    const offset = reader.readByte() catch unreachable;
+                    const signedness: i16 = @as(i16, @intFromBool(flags.special_x)) * 2 - 1;
+                    x_coord += offset * signedness;
                 }
 
-                try data.x_coords.append(x_coord);
+                data.x_coords.appendAssumeCapacity(x_coord);
             }
 
-            for (all_flags.items) |flags| {
+            for (data.flags.items) |flags| {
                 var y_coord = data.y_coords.getLastOrNull() orelse 0;
 
-                if(!flags.special_y) {
-                    if(!flags.y_short_vector) {
-                        y_coord += reader.readInt(i16, .big) catch unreachable;
-                    } else {
-                        const offset = reader.readByte() catch unreachable;
-                        const signedness: i16 = @as(i16, @intFromBool(flags.special_y)) * 2 - 1;
-                        y_coord += offset * signedness;
-                    }
+                if(!flags.y_short_vector and !flags.special_y) {
+                    y_coord += reader.readInt(i16, .big) catch unreachable;
+                } else if(flags.y_short_vector) {
+                    const offset = reader.readByte() catch unreachable;
+                    const signedness: i16 = @as(i16, @intFromBool(flags.special_y)) * 2 - 1;
+                    y_coord += offset * signedness;
                 }
 
-                try data.y_coords.append(y_coord);
+                data.y_coords.appendAssumeCapacity(y_coord);
             }
 
             return data;
@@ -202,10 +195,7 @@ pub const GlyphDescription = packed struct {
 };
 
 pub fn parseFont(self: *FontReader) !void {
-    std.log.debug("current file offset {d} ({d})", .{try self.file.getPos(), @sizeOf(OffsetSubtable)});
     const ot = try self.parseOffsetSubtable();
-    std.log.debug("number of tables: {d}", .{ot.num_tables});
-    std.log.debug("current file offset {d}", .{try self.file.getPos()});
 
     const allocator = std.heap.page_allocator;
     var tables = std.StringHashMap(u32).init(allocator);
