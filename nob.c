@@ -34,25 +34,6 @@
 #define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "gl")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-lglad", "-lglfw", "-lGL", "-lm", "-lengine", "-lstb"
 #define LDFLAGS_DELIM "\", \""
 
-Cstr all_c_files_in_dir(const char *dir_path) {
-    char *files = malloc(1);
-    files[0] = 0;
-    size_t size = 0;
-    if(!ENDS_WITH(dir_path, PATH_SEP))
-        dir_path = CONCAT(dir_path, PATH_SEP);
-    const size_t path_size = strlen(dir_path);
-
-    FOREACH_FILE_IN_DIR(file, dir_path, {
-        if(ENDS_WITH(file, ".c")) {
-            size += strlen(file) + path_size + 1;
-            files = realloc(files, size);
-            files = strcat(files, CONCAT(dir_path, file, " "));
-        }
-    });
-
-    return files;
-}
-
 void build_dep_glad(void) {
     CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
     CMD("ar", "rcs", PATH(BUILD, "libglad.a"), PATH(BUILD, "glad.o"));
@@ -188,7 +169,7 @@ int main(int argc, char **argv) {
         if(path_exists(PATH(BUILD, prog))) CMD(PATH(BUILD, prog));
         else if(path_exists(PATH(BUILD, ZIGBIN, prog))) CMD(PATH(BUILD, ZIGBIN, prog));
     } else
-        INFO("note that you can run nob examples with \"%s example <example name>\"", argv[0]);
+        INFO("note that you can run examples with \"%s example <example name>\"", argv[0]);
 
     return 0;
 }

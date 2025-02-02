@@ -13,7 +13,7 @@ fn linkGraphics(b: *std.Build, compile: *std.Build.Step.Compile) void {
 }
 
 fn linkEngineSource(b: *std.Build, compile: *std.Build.Step.Compile) void {
-    // "-Lbuild", "-Iexternal", "-Iexternal/gl", "-Iexternal/cglm/include", "-Isrc", "-l:glad.o", "-lglfw", "-lGL", "-lm", "-lengine", "-l:stb.o"
+    // "-Lbuild", "-Iexternal", "-Iexternal/gl", "-Iexternal/cglm/include", "-Isrc", "-lglad", "-lglfw", "-lGL", "-lm", "-lengine", "-lstb"
     compile.addIncludePath(b.path("external"));
     compile.addIncludePath(b.path("external/gl"));
     compile.addIncludePath(b.path("external/cglm/include"));
@@ -34,7 +34,7 @@ fn linkEngineSource(b: *std.Build, compile: *std.Build.Step.Compile) void {
         .root = b.path("src/engine"),
         .files = &[_][]const u8{ "general.c", "shader.c", "camera.c", "renderer.c", "animation.c", "utilities.c" },
         // also we already warn from the c compiling step in nob
-        .flags = &[_][]const u8{"-ggdb"}
+        .flags = &[_][]const u8{"-ggdb", "-DOPENGL_DEBUG_APP=1"}
     });
 }
 
@@ -42,7 +42,6 @@ pub fn build(b: *std.Build) !void {
     const alloc = std.heap.page_allocator;
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-
 
     var engine_parts = std.ArrayList(struct { lpath: std.Build.LazyPath, name: []const u8, module: *std.Build.Module }).init(alloc);
     defer engine_parts.deinit();

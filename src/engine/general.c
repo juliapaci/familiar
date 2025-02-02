@@ -34,7 +34,9 @@ GLFWwindow *init_window(const char *name) {
 #if OPENGL_DEBUG_APP == 1
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 #else
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // TODO: get prebuilt version 3
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 #endif // OPENGL_DEBUG_APP
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
