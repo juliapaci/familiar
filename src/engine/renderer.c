@@ -5,6 +5,7 @@
 #include <string.h>
 
 void render_init(Renderer *r) {
+    printf("renderer c print: %p\n", r);
     *r = (Renderer){0};
 
     // initialise buffers
