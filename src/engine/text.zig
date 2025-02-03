@@ -194,7 +194,7 @@ pub const GlyphDescription = packed struct {
     const parse = MakeStructParse(@This());
 };
 
-pub fn parseFont(self: *FontReader) !void {
+pub fn parseFont(self: *FontReader) !struct{ GlyphDescription, GlyphDescription.SimpleDefinition } {
     const ot = try self.parseOffsetSubtable();
 
     const allocator = std.heap.page_allocator;
@@ -211,10 +211,11 @@ pub fn parseFont(self: *FontReader) !void {
     }
 
     self.file.seekTo(tables.get("glyf").?) catch unreachable;
-    var simple = try GlyphDescription.SimpleDefinition.parse(self, GlyphDescription.parse(self) catch unreachable);
-    defer simple.deinit();
+    const glyph = GlyphDescription.parse(self) catch unreachable;
+    const simple = try GlyphDescription.SimpleDefinition.parse(self, glyph);
 
-    for(simple.x_coords.items, simple.y_coords.items) |x, y| {
+    for(simple.x_coords.items, simple.y_coords.items) |x, y|
         std.log.debug("{d}, {d}", .{x, y});
-    }
+
+    return .{ glyph, simple };
 }

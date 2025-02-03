@@ -10,6 +10,7 @@
 
 #define SHADER_TRIANGLE SHADERPATH_CREATE(SHADER_PATH "triangle")
 #define SHADER_CIRCLE   SHADERPATH_CREATE(SHADER_PATH "circle")
+#define SHADER_LINE     SHADERPATH_CREATE(SHADER_PATH "line")
 #define SHADERPATH_CREATE_FULL(name) (ShaderPaths){ \
     .vertex     = name".vs",                        \
     .fragment   = name".fs",                        \

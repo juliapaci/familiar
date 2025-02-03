@@ -163,6 +163,8 @@ int main(int argc, char **argv) {
     INFO("building examples"); build_examples();
 
     if(argc >= 3 && strcmp(argv[1], "example") == 0) {
+        // TODO: hot reloading for examples
+        // TODO: quick renderdoc shortcuts
         Cstr prog = CONCAT("example_", argv[2]);
         // this doesnt work because the first one can panic with CMD
         // CMD(PATH(BUILD, prog), "||", PATH(BUILD, ZIGBIN, prog));

@@ -15,9 +15,12 @@
 #define MAX_INDICES     MAX_QUADS * 6
 
 typedef enum {
+    // real objects
     OBJECT_TRIANGLE,
     OBJECT_CIRCLE,
+    OBJECT_LINE,
 
+    // logical objects
     OBJECT_RECTANGLE,
     OBJECT_CUBE
 } ObjectKind;
@@ -36,6 +39,14 @@ typedef struct {
     float fade;     // [0, 1) -> blurryness
     float fullness; // [0, 1] -> doughnutness
 } RenderVertexCircle;
+
+typedef struct {
+    vec3s pos;
+    vec4s colour;
+
+    // thickness should not be controlled here since we are using lines primitive instead of a cropped triangle like the circle is
+    // float thickness;
+} RenderVertexLine;
 
 // TODO: lookat using TEXTURE_2D_ARRAY
 typedef struct {
@@ -60,6 +71,17 @@ typedef struct {
         uint16_t vertex_count;
     } circle;
 
+    struct {
+        GLuint vao;
+        GLuint vbo;
+
+        RenderVertexLine vertex_buffer[MAX_VERTICES];
+        uint16_t vertex_count;
+
+        // current thickness of GL_LINES
+        float thickness;
+    } line;
+
     // Current texture for batching textures in independant draw calls
     // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
     GLuint textures[8];
@@ -68,7 +90,7 @@ typedef struct {
 
     // shader (triangle, circle)
     ObjectKind object_kind;
-    Shader shaders[2];
+    Shader shaders[3];
     GLuint ubo;
 
     // camera
@@ -101,6 +123,18 @@ typedef struct {
 
 // TODO: Sphere/Ellipse
 
+typedef struct {
+    float start_x;
+    float start_y;
+    float start_z;
+
+    float end_x;
+    float end_y;
+    float end_z;
+
+    float thickness;
+} Line;
+
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
 
@@ -132,16 +166,20 @@ void render_switch_3d(Renderer *r);
 void render_camera_uniform_sync(Renderer *r);
 
 // drawing stuff
+// NOTE: make sure you switch to the correct object before doing anything
 void render_populate_index_buffer(Renderer *r, size_t index_count);
 void render_submit_batch(Renderer *r, GLuint texture); // update batch information like current texture and flushes the batch if certain criteria is met
 void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture);
 void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, RenderVertexTriangle d, GLuint texture);
 void render_push_circle(Renderer *r, RenderVertexCircle point);
+void render_push_line(Renderer *r, RenderVertexLine a, RenderVertexLine b, float thickness);
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 void render_draw_circle(Renderer *r, Circle circle);
+void render_draw_line(Renderer *r, Line line);
+void render_draw_lined_rectangle(Renderer *r, Rectangle rect, float thickness);
 
 // texture
 GLuint render_get_white_texture(void);

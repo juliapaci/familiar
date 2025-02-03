@@ -5,7 +5,6 @@
 #include <string.h>
 
 void render_init(Renderer *r) {
-    printf("renderer c print: %p\n", r);
     *r = (Renderer){0};
 
     // initialise buffers
@@ -21,7 +20,7 @@ void render_init(Renderer *r) {
 
         glGenBuffers(1, &r->triangle.vbo);
         glBindBuffer(GL_ARRAY_BUFFER, r->triangle.vbo);
-        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(r->triangle.vertex_buffer), NULL, GL_DYNAMIC_DRAW);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, pos));
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexTriangle), (void *)offsetof(RenderVertexTriangle, colour));
@@ -31,14 +30,13 @@ void render_init(Renderer *r) {
         glEnableVertexAttribArray(2);
     }
 
-
     { // circle
         glGenVertexArrays(1, &r->circle.vao);
         glBindVertexArray(r->circle.vao);
 
         glGenBuffers(1, &r->circle.vbo);
         glBindBuffer(GL_ARRAY_BUFFER, r->circle.vbo);
-        glBufferData(GL_ARRAY_BUFFER, MAX_VERTICES * sizeof(RenderVertexTriangle), NULL, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(r->circle.vertex_buffer), NULL, GL_DYNAMIC_DRAW);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, pos));
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexCircle), (void *)offsetof(RenderVertexCircle, colour));
@@ -52,10 +50,25 @@ void render_init(Renderer *r) {
         glEnableVertexAttribArray(4);
     }
 
+    { // line
+        glGenVertexArrays(1, &r->line.vao);
+        glBindVertexArray(r->line.vao);
+
+        glGenBuffers(1, &r->line.vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, r->line.vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(r->line.vertex_buffer), NULL, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexLine), (void *)offsetof(RenderVertexLine, pos));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexLine), (void *)offsetof(RenderVertexLine, colour));
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+    }
+
     // shader
     {
         shader_init(&r->shaders[OBJECT_TRIANGLE], SHADER_TRIANGLE);
         shader_init(&r->shaders[OBJECT_CIRCLE], SHADER_CIRCLE);
+        shader_init(&r->shaders[OBJECT_LINE], SHADER_LINE);
         r->object_kind = OBJECT_TRIANGLE;
         glUseProgram(render_shader(r)->id);
 
@@ -101,6 +114,9 @@ void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->circle.vbo);
     glDeleteVertexArrays(1, &r->circle.vao);
 
+    glDeleteBuffers(1, &r->line.vbo);
+    glDeleteVertexArrays(1, &r->line.vao);
+
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
         shader_free(&r->shaders[i]);
     glDeleteBuffers(1, &r->ubo);
@@ -115,17 +131,17 @@ void render_frame_begin(Renderer *r) {
     r->triangle.vertex_count = 0;
     r->triangle.index_count = 0;
     r->circle.vertex_count = 0;
+    r->line.vertex_count = 0;
 }
 
 void render_frame_end(Renderer *r) {
+    // TODO: instancing?
 
     // TODO: possibly keep a "different_shape" bool in `Renderer` (see `render_switch_object`)
     //       which tells us if the object context has changed since the last frame
     //       so we dont have to bind the same vertex arrays?
     // buffer updates and draw calls
     switch(r->object_kind) {
-        // case OBJECT_CUBE:
-        // case OBJECT_RECTANGLE:
         case OBJECT_TRIANGLE: {
             // current batch's texture
             glActiveTexture(GL_TEXTURE0 + r->texture_index);
@@ -168,8 +184,20 @@ void render_frame_end(Renderer *r) {
                 r->circle.vertex_buffer
             );
 
-            // TODO: instancing?
             glDrawArrays(GL_TRIANGLES, 0, r->circle.vertex_count);
+        } break;
+
+        case OBJECT_LINE: {
+            glBindVertexArray(r->line.vao);
+            glBindBuffer(GL_ARRAY_BUFFER, r->line.vbo);
+            glBufferSubData(
+                GL_ARRAY_BUFFER,
+                0,
+                r->line.vertex_count * sizeof(RenderVertexLine),
+                r->line.vertex_buffer
+            );
+
+            glDrawArrays(GL_LINES, 0, r->line.vertex_count);
         } break;
 
         default: return;
@@ -177,7 +205,7 @@ void render_frame_end(Renderer *r) {
 }
 
 void render_frame_flush(Renderer *r) {
-    if(r->triangle.vertex_count + r->circle.vertex_count == 0)
+    if(r->triangle.vertex_count + r->circle.vertex_count + r->line.vertex_count == 0)
         return;
 
     render_frame_end(r);
@@ -246,11 +274,11 @@ void render_camera_uniform_sync(Renderer *r) {
 }
 
 void render_submit_batch(Renderer *r, GLuint texture) {
-    const bool same_texture = texture == r->textures[r->texture_index];
+    const bool same_texture = (texture == r->textures[r->texture_index]) || (texture == 0);
 
     // flush batch
     if(
-        r->triangle.vertex_count + r->circle.vertex_count == MAX_VERTICES ||
+        r->triangle.vertex_count + r->circle.vertex_count + r->line.vertex_count == MAX_VERTICES ||
         r->texture_count > 8 ||
         !same_texture
     ) {
@@ -291,7 +319,6 @@ void render_populate_index_buffer(Renderer *r, size_t index_count) {
 void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture) {
     render_submit_batch(r, texture);
 
-    // TODO: fix triangles and rectangles (although they have correct indices) render weirdly
     // 0 1 2
     // 3 4 5
     // ...
@@ -333,12 +360,23 @@ void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle 
 }
 
 void render_push_circle(Renderer *r, RenderVertexCircle point) {
-    // technically the texture doesnt matter so 0 works fine.
-    // but just incase for the future ill use the white texture
-    render_submit_batch(r, render_get_white_texture());
+    render_submit_batch(r, 0);
 
     for(uint8_t _ = 0; _ < 3; _++)
         r->circle.vertex_buffer[r->circle.vertex_count++] = point;
+}
+
+void render_push_line(Renderer *r, RenderVertexLine a, RenderVertexLine b, float thickness) {
+    render_submit_batch(r, 0);
+    // not sure if this should be in `render_submit_batch` with like a switch statement for all the types' specific conditions to flush
+    if(thickness != r->line.thickness) {
+        render_frame_flush(r);
+        glLineWidth(thickness);
+        r->line.thickness = thickness;
+    }
+
+    r->line.vertex_buffer[r->line.vertex_count++] = a;
+    r->line.vertex_buffer[r->line.vertex_count++] = b;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
@@ -456,6 +494,64 @@ void render_draw_circle(Renderer *r, Circle circle) {
             .fullness   = 1.0f
         }
     );
+}
+
+void render_draw_line(Renderer *r, Line line) {
+    render_push_line(
+        r,
+        (RenderVertexLine){
+            .pos        = {line.start_x, line.start_y, line.start_z},
+            .colour     = {1, 1, 1, 1},
+        },
+        (RenderVertexLine){
+            .pos        = {line.end_x, line.end_y, line.end_z},
+            .colour     = {1, 1, 1, 1},
+        },
+        line.thickness
+    );
+}
+
+void render_draw_lined_rectangle(Renderer *r, Rectangle rect, float thickness) {
+    Line line = (Line){ .start_z = 0, .end_z = 0, .thickness = thickness };
+
+    // -----
+    line.start_x = rect.x,
+    line.start_y = rect.y,
+    line.end_x = rect.x + rect.width;
+    line.end_y = rect.y;
+    render_draw_line(r, line);
+
+    // -----+
+    //      |
+    //      |
+    //      |
+    line.start_x = rect.x + rect.width,
+    line.start_y = rect.y,
+    line.end_x = rect.x + rect.width;
+    line.end_y = rect.y + rect.height;
+    render_draw_line(r, line);
+
+    // -----+
+    //      |
+    //      |
+    //      |
+    // -----+
+    line.start_x = rect.x + rect.width,
+    line.start_y = rect.y + rect.height,
+    line.end_x = rect.x;
+    line.end_y = rect.y + rect.height;
+    render_draw_line(r, line);
+
+    // +-----+
+    // |     |
+    // |     |
+    // |     |
+    // +-----+
+    line.start_x = rect.x,
+    line.start_y = rect.y + rect.height,
+    line.end_x = rect.x;
+    line.end_y = rect.y;
+    render_draw_line(r, line);
 }
 
 GLuint _white_texture = UINT32_MAX;
