@@ -50,21 +50,35 @@ void render_init(Renderer *r) {
         glEnableVertexAttribArray(4);
     }
 
-    { // line
-        glGenVertexArrays(1, &r->line.vao);
-        glBindVertexArray(r->line.vao);
+    { // cropped segmented line
+        glGenVertexArrays(1, &r->line_cs.vao);
 
-        glGenBuffers(1, &r->line.ssbo);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, r->line.ssbo);
+        glGenBuffers(1, &r->line_cs.ssbo);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, r->line_cs.ssbo);
         glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(RenderVertexLine) * MAX_VERTICES, NULL, GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, r->line.ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, r->line_cs.ssbo);
+    }
+
+    { // simple line
+        glGenVertexArrays(1, &r->line_s.vao);
+        glBindVertexArray(r->line_s.vao);
+
+        glGenBuffers(1, &r->line_s.vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, r->line_s.vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(r->line_s.vertex_buffer), NULL, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertexLine), (void *)offsetof(RenderVertexLine, pos));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertexLine), (void *)offsetof(RenderVertexLine, colour));
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
     }
 
     // shader
     {
         shader_init(&r->shaders[OBJECT_TRIANGLE], SHADER_TRIANGLE);
         shader_init(&r->shaders[OBJECT_CIRCLE], SHADER_CIRCLE);
-        shader_init(&r->shaders[OBJECT_LINE], SHADER_LINE);
+        shader_init(&r->shaders[OBJECT_LINE_CROPPED_SEGMENTED], SHADER_LINE_CS);
+        shader_init(&r->shaders[OBJECT_LINE_SIMPLE], SHADER_LINE_S);
         r->object_kind = OBJECT_TRIANGLE;
         glUseProgram(render_shader(r)->id);
 
@@ -110,8 +124,11 @@ void render_free(Renderer *r) {
     glDeleteBuffers(1, &r->circle.vbo);
     glDeleteVertexArrays(1, &r->circle.vao);
 
-    glDeleteVertexArrays(1, &r->line.vao);
-    glDeleteBuffers(1, &r->line.ssbo);
+    glDeleteVertexArrays(1, &r->line_cs.vao);
+    glDeleteBuffers(1, &r->line_cs.ssbo);
+
+    glDeleteBuffers(1, &r->line_s.vbo);
+    glDeleteVertexArrays(1, &r->line_s.vao);
 
     for(size_t i = 0; i < sizeof(r->shaders)/sizeof(r->shaders[0]); i++)
         shader_free(&r->shaders[i]);
@@ -127,7 +144,8 @@ void render_frame_begin(Renderer *r) {
     r->triangle.vertex_count = 0;
     r->triangle.index_count = 0;
     r->circle.vertex_count = 0;
-    r->line.segment_amount = 0;
+    r->line_cs.segment_amount = 0;
+    r->line_s.vertex_count = 0;
 }
 
 void render_frame_end(Renderer *r) {
@@ -183,12 +201,25 @@ void render_frame_end(Renderer *r) {
             glDrawArrays(GL_TRIANGLES, 0, r->circle.vertex_count);
         } break;
 
-        case OBJECT_LINE: {
-            if(r->line.segment_amount == 0) break;
+        case OBJECT_LINE_CROPPED_SEGMENTED: {
+            if(r->line_cs.segment_amount == 0) break;
 
-            glBindVertexArray(r->line.vao);
+            glBindVertexArray(r->line_cs.vao);
             // need to use an empty draw call to invoke the vertex shader
-            glDrawArrays(GL_LINES, 0, 6*(r->line.segment_amount - 1));
+            glDrawArrays(GL_LINES, 0, 6*(r->line_cs.segment_amount - 1));
+        } break;
+
+        case OBJECT_LINE_SIMPLE: {
+            glBindVertexArray(r->line_s.vao);
+            glBindBuffer(GL_ARRAY_BUFFER, r->line_s.vbo);
+            glBufferSubData(
+                GL_ARRAY_BUFFER,
+                0,
+                r->line_s.vertex_count * sizeof(RenderVertexLine),
+                r->line_s.vertex_buffer
+            );
+
+            glDrawArrays(GL_LINES, 0, r->line_s.vertex_count);
         } break;
 
         default: return;
@@ -196,7 +227,7 @@ void render_frame_end(Renderer *r) {
 }
 
 void render_frame_flush(Renderer *r) {
-    if(r->triangle.vertex_count + r->circle.vertex_count + r->line.segment_amount == 0)
+    if(r->triangle.vertex_count + r->circle.vertex_count + r->line_cs.segment_amount + r->line_s.vertex_count == 0)
         return;
 
     render_frame_end(r);
@@ -269,7 +300,7 @@ void render_submit_batch(Renderer *r, GLuint texture) {
 
     // flush batch
     if(
-        r->triangle.vertex_count + r->circle.vertex_count == MAX_VERTICES ||
+        r->triangle.vertex_count + r->circle.vertex_count + r->line_cs.segment_amount + r->line_s.vertex_count == MAX_VERTICES ||
         r->texture_count > 8 ||
         !same_texture
     ) {
@@ -358,16 +389,16 @@ void render_push_circle(Renderer *r, RenderVertexCircle point) {
 }
 
 // NOTE: flushes
-void render_push_line(Renderer *r, RenderVertexLine *segments, uint16_t segment_amount, float thickness) {
+void render_push_line_cs(Renderer *r, vec3s *segments, uint16_t segment_amount, float thickness) {
     render_submit_batch(r, 0);
-    if(thickness != r->line.thickness) {
+    if(thickness != r->line_cs.thickness) {
         render_frame_flush(r);
-        r->line.thickness = thickness;
-        glUniform1f(render_shader_uniform(r, "u_thickness"), r->line.thickness);
+        r->line_cs.thickness = thickness;
+        glUniform1f(render_shader_uniform(r, "u_thickness"), r->line_cs.thickness);
     }
 
     // minus the start and end points
-    r->line.segment_amount = segment_amount - 2;
+    r->line_cs.segment_amount = segment_amount - 2;
     glBufferSubData(
         GL_SHADER_STORAGE_BUFFER,
         0,
@@ -376,6 +407,18 @@ void render_push_line(Renderer *r, RenderVertexLine *segments, uint16_t segment_
     );
 
     render_frame_flush(r);
+}
+
+void render_push_line_s(Renderer *r, RenderVertexLine a, RenderVertexLine b, float thickness) {
+    render_submit_batch(r, 0);
+    if(thickness != r->line_s.thickness) {
+        render_frame_flush(r);
+        glLineWidth(thickness);
+        r->line_s.thickness = thickness;
+    }
+
+    r->line_s.vertex_buffer[r->line_s.vertex_count++] = a;
+    r->line_s.vertex_buffer[r->line_s.vertex_count++] = b;
 }
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture) {
@@ -495,48 +538,63 @@ void render_draw_circle(Renderer *r, Circle circle) {
     );
 }
 
-// void render_draw_lined_rectangle(Renderer *r, Rectangle rect, float thickness) {
-//     Line line = (Line){ .start_z = 0, .end_z = 0, .thickness = thickness };
-//
-//     // -----
-//     line.start_x = rect.x,
-//     line.start_y = rect.y,
-//     line.end_x = rect.x + rect.width;
-//     line.end_y = rect.y;
-//     render_draw_line(r, line);
-//
-//     // -----+
-//     //      |
-//     //      |
-//     //      |
-//     line.start_x = rect.x + rect.width,
-//     line.start_y = rect.y,
-//     line.end_x = rect.x + rect.width;
-//     line.end_y = rect.y + rect.height;
-//     render_draw_line(r, line);
-//
-//     // -----+
-//     //      |
-//     //      |
-//     //      |
-//     // -----+
-//     line.start_x = rect.x + rect.width,
-//     line.start_y = rect.y + rect.height,
-//     line.end_x = rect.x;
-//     line.end_y = rect.y + rect.height;
-//     render_draw_line(r, line);
-//
-//     // +-----+
-//     // |     |
-//     // |     |
-//     // |     |
-//     // +-----+
-//     line.start_x = rect.x,
-//     line.start_y = rect.y + rect.height,
-//     line.end_x = rect.x;
-//     line.end_y = rect.y;
-//     render_draw_line(r, line);
-// }
+void render_draw_line(Renderer *r, Line line) {
+    render_push_line_s(
+        r,
+        (RenderVertexLine){
+            .pos = line.start,
+            .colour = {1, 1, 1, 1}
+        },
+        (RenderVertexLine){
+            .pos = line.end,
+            .colour = {1, 1, 1, 1}
+        },
+        line.thickness
+    );
+}
+
+void render_draw_lined_rectangle(Renderer *r, Rectangle rect, float thickness) {
+    Line line = (Line){ .start.z = 0, .end.z = 0, .thickness = thickness };
+
+    // -----
+    line.start.x = rect.x,
+    line.start.y = rect.y,
+    line.end.x = rect.x + rect.width;
+    line.end.y = rect.y;
+    render_draw_line(r, line);
+
+    // -----+
+    //      |
+    //      |
+    //      |
+    line.start.x = rect.x + rect.width,
+    line.start.y = rect.y,
+    line.end.x = rect.x + rect.width;
+    line.end.y = rect.y + rect.height;
+    render_draw_line(r, line);
+
+    // -----+
+    //      |
+    //      |
+    //      |
+    // -----+
+    line.start.x = rect.x + rect.width,
+    line.start.y = rect.y + rect.height,
+    line.end.x = rect.x;
+    line.end.y = rect.y + rect.height;
+    render_draw_line(r, line);
+
+    // +-----+
+    // |     |
+    // |     |
+    // |     |
+    // +-----+
+    line.start.x = rect.x,
+    line.start.y = rect.y + rect.height,
+    line.end.x = rect.x;
+    line.end.y = rect.y;
+    render_draw_line(r, line);
+}
 
 GLuint _white_texture = UINT32_MAX;
 

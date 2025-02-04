@@ -18,11 +18,12 @@ typedef enum {
     // real objects
     OBJECT_TRIANGLE,
     OBJECT_CIRCLE,
-    OBJECT_LINE,
+    OBJECT_LINE_CROPPED_SEGMENTED,
+    OBJECT_LINE_SIMPLE,
 
     // logical objects
     OBJECT_RECTANGLE,
-    OBJECT_CUBE
+    OBJECT_CUBE,
 } ObjectKind;
 
 typedef struct {
@@ -40,14 +41,11 @@ typedef struct {
     float fullness; // [0, 1] -> doughnutness
 } RenderVertexCircle;
 
-// as a line strip, so this is relative to the last line unless its the starting point
-// has no abstraction type like `Rectangle` or `Circle`
 typedef struct {
     vec3s pos;
-    // vec4s colour;
+    vec4s colour;
 } RenderVertexLine;
 
-// TODO: lookat using TEXTURE_2D_ARRAY
 typedef struct {
     // OpenGL objects and cpu mirror of gpu buffers
     struct {
@@ -71,6 +69,7 @@ typedef struct {
     } circle;
 
     // https://stackoverflow.com/a/60440937
+    // this line version is made up of cropped triangles and is segmented (in the same vein as GL_LINE_STRIP)
     struct {
         // empty vao just used to invoke vertex shader
         GLuint vao;
@@ -80,17 +79,31 @@ typedef struct {
 
         // current thickness (mirror of uniform)
         float thickness;
-    } line;
+    } line_cs;
 
+    // this line version uses the line graphics primitive
+    // will heavily depend on driver implementation
+    struct {
+        GLuint vao;
+        GLuint vbo;
+
+        RenderVertexLine vertex_buffer[MAX_VERTICES];
+        uint16_t vertex_count;
+
+        // uses GL_LINE_WIDTH (only [0..1] in some versions of opengl)
+        float thickness;
+    } line_s;
+
+    // TODO: lookat using TEXTURE_2D_ARRAY
     // Current texture for batching textures in independant draw calls
     // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
     GLuint textures[8];
     uint8_t texture_count;
     GLuint texture_index; // current index
 
-    // shader (triangle, circle)
+    // shader (triangle, circle, line)
     ObjectKind object_kind;
-    Shader shaders[3];
+    Shader shaders[4];
     GLuint ubo;
 
     // camera
@@ -122,6 +135,12 @@ typedef struct {
 } Circle;
 
 // TODO: Sphere/Ellipse
+
+typedef struct {
+    vec3s start;
+    vec3s end;
+    float thickness;
+} Line;
 
 void render_init(Renderer *renderer);
 void render_free(Renderer *renderer);
@@ -160,12 +179,14 @@ void render_submit_batch(Renderer *r, GLuint texture); // update batch informati
 void render_push_triangle(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, GLuint texture);
 void render_push_quad(Renderer *r, RenderVertexTriangle a, RenderVertexTriangle b, RenderVertexTriangle c, RenderVertexTriangle d, GLuint texture);
 void render_push_circle(Renderer *r, RenderVertexCircle point);
-void render_push_line(Renderer *r, RenderVertexLine *segments, uint16_t segment_amount, float thickness);
+void render_push_line_cs(Renderer *r, vec3s *segments, uint16_t segment_amount, float thickness);
+void render_push_line_s(Renderer *r, RenderVertexLine a, RenderVertexLine b, float thickness);
 
 void render_draw_rectangle_uv(Renderer *r, Rectangle rect, Rectangle uv, GLuint texture);
 void render_draw_rectangle(Renderer *r, Rectangle rect, GLuint texture);
 void render_draw_cube(Renderer *r, Cube cube, GLuint texture);
 void render_draw_circle(Renderer *r, Circle circle);
+void render_draw_line(Renderer *r, Line line);
 void render_draw_lined_rectangle(Renderer *r, Rectangle rect, float thickness);
 
 // texture

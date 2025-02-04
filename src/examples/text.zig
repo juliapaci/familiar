@@ -22,21 +22,15 @@ pub fn main() !void {
     familiar.render_init(renderer);
     defer familiar.render_free(renderer);
 
-    var lines: [4]familiar.RenderVertexLine = undefined;
-    lines[0].pos = .{.raw = [3]f32{0, 0, 0}};
-    lines[1].pos = .{.raw = [3]f32{5, 0, 0}};
-    lines[2].pos = .{.raw = [3]f32{5, 5, 0}};
-    lines[3].pos = .{.raw = [3]f32{5,10, 0}};
-
-
     while(familiar.glfwWindowShouldClose(window) == 0) {
         familiar.glClearColor(0.1, 0.1, 0.1, 1.0);
         familiar.glClear(familiar.GL_COLOR_BUFFER_BIT);
 
         familiar.render_frame_begin(renderer); {
+            familiar.render_switch_2d(renderer);
+
             {
                 familiar.render_switch_object(renderer, familiar.OBJECT_CIRCLE);
-                familiar.render_switch_2d(renderer);
 
                 for(
                     glyphs[1].x_coords.items,
@@ -49,17 +43,6 @@ pub fn main() !void {
             }
 
             {
-                familiar.render_switch_object(renderer, familiar.OBJECT_LINE);
-                familiar.render_switch_2d(renderer);
-                familiar.render_push_line(renderer, &lines, lines.len, 4.0);
-
-                // familiar.render_draw_lined_rectangle(renderer, .{
-                //     .x = 0.0,
-                //     .y = 0.0,
-                //     .width = 10.0,
-                //     .height = 10.0
-                // }, 4.0);
-
                 // const contour_ends = glyphs[1].end_contour_points.items;
                 // for(1..contour_ends.len) |c| {
                 //     for(
