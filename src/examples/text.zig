@@ -14,7 +14,6 @@ pub fn main() !void {
 
     const window = familiar.init_window("Familiar text example (zig)") orelse return;
     defer familiar.glfwTerminate();
-    familiar.glEnable(familiar.GL_LINE_SMOOTH);
 
     // TODO: for some reason the renderer pointer breaks when we pass it to a extern (c) function with a segfault because for some reason we cant access half the struct?? it only happens on certain computers and only sometimes (like sometimes it will run fine, others will crash on render_init, and others will crash half way through when we try to push a vertex). very weird behaviour
     const allocator = std.heap.page_allocator;
@@ -22,6 +21,13 @@ pub fn main() !void {
     defer allocator.destroy(renderer);
     familiar.render_init(renderer);
     defer familiar.render_free(renderer);
+
+    var lines: [4]familiar.RenderVertexLine = undefined;
+    lines[0].pos = .{.raw = [3]f32{0, 0, 0}};
+    lines[1].pos = .{.raw = [3]f32{5, 0, 0}};
+    lines[2].pos = .{.raw = [3]f32{5, 5, 0}};
+    lines[3].pos = .{.raw = [3]f32{5,10, 0}};
+
 
     while(familiar.glfwWindowShouldClose(window) == 0) {
         familiar.glClearColor(0.1, 0.1, 0.1, 1.0);
@@ -45,24 +51,14 @@ pub fn main() !void {
             {
                 familiar.render_switch_object(renderer, familiar.OBJECT_LINE);
                 familiar.render_switch_2d(renderer);
+                familiar.render_push_line(renderer, &lines, lines.len, 4.0);
 
-                familiar.render_draw_line(renderer, .{
-                    .start_x = 0,
-                    .start_y = 0,
-                    .start_z = 0,
-                    .end_x = 1,
-                    .end_y = @floatCast(std.math.sin(familiar.glfwGetTime())),
-                    .end_z = 0,
-
-                    .thickness = 4.0
-                });
-
-                familiar.render_draw_lined_rectangle(renderer, .{
-                    .x = 0.0,
-                    .y = 0.0,
-                    .width = 10.0,
-                    .height = 10.0
-                }, 4.0);
+                // familiar.render_draw_lined_rectangle(renderer, .{
+                //     .x = 0.0,
+                //     .y = 0.0,
+                //     .width = 10.0,
+                //     .height = 10.0
+                // }, 4.0);
 
                 // const contour_ends = glyphs[1].end_contour_points.items;
                 // for(1..contour_ends.len) |c| {

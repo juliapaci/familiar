@@ -61,49 +61,34 @@ int main(void) {
             entity.size += delta_time;
 
         render_frame_begin(&renderer);
-            render_switch_object(&renderer, OBJECT_LINE);
-            render_switch_3d(&renderer);
-            render_draw_line(&renderer, (Line){
-                .start_x = -0.01,
-                .start_y = -0.01,
-                .start_z = 0,
-                // .end_x = sin(glfwGetTime()),
-                // .end_y = cos(glfwGetTime()),
-                .end_x = 0.5,
-                .end_y = 0.5,
-                .end_z = 0,
-
-                .thickness = 1.0
-            });
-
             render_switch_object(&renderer, OBJECT_TRIANGLE);
             render_switch_3d(&renderer);
             draw_entity(&renderer, &entity);
-            //
-            // render_switch_2d(&renderer);
-            // render_push_triangle(&renderer,
-            //     (RenderVertexTriangle){
-            //         .pos    = {5, 0, 0},
-            //         .colour = {1, 1, 1, 1},
-            //         .uv     = {0, 0}
-            //     },
-            //     (RenderVertexTriangle){
-            //         .pos    = {7, 0, 0},
-            //         .colour = {1, 1, 1, 1},
-            //         .uv     = {1, 0}
-            //     },
-            //     (RenderVertexTriangle){
-            //         .pos    = {5, 2, 0},
-            //         .colour = {1, 1, 1, 1},
-            //         .uv     = {0, 1}
-            //     },
-            //     render_get_white_texture()
-            // );
-            // render_switch_object(&renderer, OBJECT_CIRCLE);
-            // render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
-            //
-            // render_switch_3d(&renderer);
-            // render_draw_circle(&renderer, (Circle){entity.pos.x + 2, entity.pos.y - 2, entity.size});
+
+            render_switch_2d(&renderer);
+            render_push_triangle(&renderer,
+                (RenderVertexTriangle){
+                    .pos    = {5, 0, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {0, 0}
+                },
+                (RenderVertexTriangle){
+                    .pos    = {7, 0, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {1, 0}
+                },
+                (RenderVertexTriangle){
+                    .pos    = {5, 2, 0},
+                    .colour = {1, 1, 1, 1},
+                    .uv     = {0, 1}
+                },
+                render_get_white_texture()
+            );
+            render_switch_object(&renderer, OBJECT_CIRCLE);
+            render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
+
+            render_switch_3d(&renderer);
+            render_draw_circle(&renderer, (Circle){entity.pos.x + 2, entity.pos.y - 2, entity.size});
         render_frame_end(&renderer);
 
         process_general_input(window);
