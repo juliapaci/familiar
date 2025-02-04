@@ -16,6 +16,7 @@ pub fn main() !void {
     defer familiar.glfwTerminate();
     familiar.glEnable(familiar.GL_LINE_SMOOTH);
 
+    // TODO: for some reason the renderer pointer breaks when we pass it to a extern (c) function with a segfault because for some reason we cant access half the struct?? it only happens on certain computers and only sometimes (like sometimes it will run fine, others will crash on render_init, and others will crash half way through when we try to push a vertex). very weird behaviour
     const allocator = std.heap.page_allocator;
     const renderer = try allocator.create(familiar.Renderer);
     defer allocator.destroy(renderer);
