@@ -175,6 +175,7 @@ pub const GlyphDescription = packed struct {
                 data.y_coords.appendAssumeCapacity(y_coord);
             }
 
+
             return data;
         }
 
@@ -213,6 +214,7 @@ pub fn parseFont(self: *FontReader) !struct{ GlyphDescription, GlyphDescription.
     self.file.seekTo(tables.get("glyf").?) catch unreachable;
     const glyph = GlyphDescription.parse(self) catch unreachable;
     const simple = try GlyphDescription.SimpleDefinition.parse(self, glyph);
+    errdefer simple.deinit();
 
     for(simple.x_coords.items, simple.y_coords.items) |x, y|
         std.log.debug("{d}, {d}", .{x, y});

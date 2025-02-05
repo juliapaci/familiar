@@ -10,6 +10,7 @@
 // TODO: siwtch to global arena allocator
 // TODO: user defined hashmap: keys to function pointers
 //       for a single dynamic glfw key callback
+// TODO: support mulitple graphics and wondowing api with a simple abstraction
 
 // temporary solution
 extern float delta_time;

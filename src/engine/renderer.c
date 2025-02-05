@@ -4,6 +4,10 @@
 #include <stb/stb_image_write.h>
 #include <string.h>
 
+const size_t size_of_renderer = sizeof(Renderer);
+extern void do_something_with_the_entire_struct(Renderer *r);
+extern void use_some_lower_fields(Renderer *r);
+
 void render_init(Renderer *r) {
     *r = (Renderer){0};
 
@@ -113,6 +117,7 @@ void render_init(Renderer *r) {
         r->camera = camera_init();
         camera_update(&r->camera);
         render_camera_uniform_sync(r);
+        printf("c size: %ld\n", sizeof(Renderer));
     }
 }
 

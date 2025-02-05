@@ -75,7 +75,7 @@ void process_camera_input(GLFWwindow *window, Camera *camera) {
         glfwSetInputMode(
             window,
             GLFW_CURSOR,
-            // normal, disabled
+            // normal or disabled
             GLFW_CURSOR_NORMAL + 2*camera->enabled
         );
     }

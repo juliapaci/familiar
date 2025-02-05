@@ -125,4 +125,25 @@ pub fn build(b: *std.Build) !void {
             b.installArtifact(exec);
         }
     }
+
+    {
+        var dir = try std.fs.cwd().openDir("src/tests", .{ .iterate = true });
+
+        var walker = try dir.walk(b.allocator);
+        defer walker.deinit();
+
+        const test_step = b.step("test", "run all the tests");
+
+        while (try walker.next()) |entry| {
+            if (!std.mem.eql(u8, std.fs.path.extension(entry.basename), ".zig"))
+                continue;
+
+            const ctest = b.addTest(.{ .root_source_file = b.path("src/tests").path(b, entry.path) });
+            linkEngineSource(b, ctest);
+
+            const run_unit_tests = b.addRunArtifact(ctest);
+            test_step.dependOn(&run_unit_tests.step);
+            test_step.dependOn(&ctest.step);
+        }
+    }
 }

@@ -96,19 +96,26 @@ int main(void) {
                 render_switch_object(&renderer, OBJECT_CIRCLE);
                 render_draw_circle(&renderer, (Circle){entity.pos.x, entity.pos.y, entity.size});
 
+                double x, y;
+                int w, h;
+                glfwGetCursorPos(window, &x, &y);
+                glfwGetWindowSize(window, &w, &h);
+                x /= w;
+                y /= w;
+                y = -y;
+
                 render_switch_object(&renderer, OBJECT_LINE_SIMPLE);
                 render_draw_lined_rectangle(&renderer, (Rectangle){
-                    .x = 0.0,
-                    .y = 0.0,
-                    .width = 2.0,
-                    .height = 2.0
-                }, 10.0);
+                    .x = x,
+                    .y = y,
+                    .width = entity.size,
+                    .height = entity.size
+                }, 10.0 - renderer.camera.fov/90.0);
 
             }
 
             render_switch_3d(&renderer); {
                 render_draw_circle(&renderer, (Circle){entity.pos.x + 2, entity.pos.y - 2, entity.size});
-
                 render_switch_object(&renderer, OBJECT_LINE_SIMPLE);
                 render_draw_line(&renderer, (Line){
                     .start = { 0, 0, 0 },

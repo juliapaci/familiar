@@ -13,6 +13,6 @@ void main() {
     frag_colour = v_colour;
     float ms = dot(v_pos, v_pos);
     // TODO: fullness
-    // frag_colour.a *= smoothstep(0.0, v_fullness, ms);
+    // frag_colour.a *= 1.0 - smoothstep(0.3, 0.31, ms);
     frag_colour.a *= smoothstep(v_fullness, v_fade, ms);
 };

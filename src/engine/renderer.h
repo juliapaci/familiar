@@ -94,9 +94,8 @@ typedef struct {
         float thickness;
     } line_s;
 
-    // TODO: lookat using TEXTURE_2D_ARRAY
+    // TODO: look at using TEXTURE_2D_ARRAY
     // Current texture for batching textures in independant draw calls
-    // TODO: need to properly batch renders but its difficult since i cant index into the sampler2d array with a non uniform value like a texture index vertex attribute
     GLuint textures[8];
     uint8_t texture_count;
     GLuint texture_index; // current index
@@ -109,6 +108,9 @@ typedef struct {
     // camera
     Camera camera;
 } Renderer;
+extern const size_t size_of_renderer; // needed for c interop with some languages
+inline void do_something_with_the_entire_struct(Renderer *r) { *r = (Renderer){0}; };
+inline void use_some_lower_fields(Renderer *r) { bool _ = r->camera.enabled; };
 
 typedef struct {
     float x;

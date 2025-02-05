@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     INFO("building dependencies"); build_dependencies();
     INFO("building examples"); build_examples();
 
-    if(argc >= 3 && strcmp(argv[1], "example") == 0) {
+    if(argc == 3 && strcmp(argv[1], "example") == 0) {
         // TODO: hot reloading for examples
         // TODO: quick renderdoc shortcuts
         Cstr prog = CONCAT("example_", argv[2]);
@@ -170,8 +170,11 @@ int main(int argc, char **argv) {
         // CMD(PATH(BUILD, prog), "||", PATH(BUILD, ZIGBIN, prog));
         if(path_exists(PATH(BUILD, prog))) CMD(PATH(BUILD, prog));
         else if(path_exists(PATH(BUILD, ZIGBIN, prog))) CMD(PATH(BUILD, ZIGBIN, prog));
-    } else
+    } else if(argc == 2 && strcmp(argv[1], "test") == 0)
+        CMD("zig", "build", "test");
+    else
         INFO("note that you can run examples with \"%s example <example name>\"", argv[0]);
+
 
     return 0;
 }
