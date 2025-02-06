@@ -27,6 +27,8 @@
 #define BUILD "build"
 #define ZIGLIB "lib"
 #define ZIGBIN "bin"
+#define ZIGEXEC "zig"
+#define CC "gcc" // cant use shell `cc` because CMD will reset environment variables?
 
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
@@ -35,7 +37,7 @@
 #define LDFLAGS_DELIM "\", \""
 
 void build_dep_glad(void) {
-    CMD("cc", LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
+    CMD(CC, LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
     CMD("ar", "rcs", PATH(BUILD, "libglad.a"), PATH(BUILD, "glad.o"));
 }
 
@@ -61,17 +63,17 @@ void build_dep_stb(void) {
     });
     fclose(impl);
 
-    CMD("cc", CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, "stb.o"), PATH(BUILD, "stb_implementations.c"));
+    CMD(CC, CONCAT("-I", PATH(THIRD_PARTY, "stb")), "-c", "-o", PATH(BUILD, "stb.o"), PATH(BUILD, "stb_implementations.c"));
     CMD("ar", "rcs", PATH(BUILD, "libstb.a"), PATH(BUILD, "stb.o"));
 }
 
 #define ENGINE_BUILD_STATIC(translation_unit) \
     const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
-    CMD("cc", CFLAGS, OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
+    CMD(CC, CFLAGS, OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
 #define ENGINE_BUILD_DYNAMIC(translation_unit) \
     const Cstr translation_unit = PATH(BUILD, #translation_unit ".o"); \
-    CMD("cc", CFLAGS, "-fpic", OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
+    CMD(CC, CFLAGS, "-fpic", OPENGL_DEBUG_APP, "-c", "-o", translation_unit, PATH(SRC, ENGINE, #translation_unit ".c"), LDFLAGS);
 
 void build_dep_engine() {
     // TODO: simplify further
@@ -87,7 +89,7 @@ void build_dep_engine() {
         CMD("ar", "rcs", PATH(BUILD, "libengine.a"), general, shader, camera, renderer, animation, utilities);
 
         INFO("ENGINE: buliding zig parts");
-        CMD("zig", "build", "--prefix", "build");
+        CMD(ZIGEXEC, "build", "--prefix", "build");
 
         CMD("ar", "rcs", PATH(BUILD, "libengine.a"), PATH(BUILD, ZIGLIB, "libtext.a"));
     }
@@ -100,7 +102,7 @@ void build_dep_engine() {
         ENGINE_BUILD_DYNAMIC(renderer);
         ENGINE_BUILD_DYNAMIC(animation);
         ENGINE_BUILD_DYNAMIC(utilities);
-        CMD("cc", "-shared", "-o", PATH(BUILD, "libengine.so"), general, shader, camera, renderer, animation, utilities, PATH(BUILD, ZIGLIB, "libtext.a"));
+        CMD(CC, "-shared", "-o", PATH(BUILD, "libengine.so"), general, shader, camera, renderer, animation, utilities, PATH(BUILD, ZIGLIB, "libtext.a"));
     }
 #endif
 }
@@ -115,7 +117,7 @@ void build_examples(void) {
     FOREACH_FILE_IN_DIR(file, PATH(SRC, EXAMPLE), {
         if(ENDS_WITH(file, ".c")) {
             INFO("building example \"%s\"", file);
-            CMD("cc", CFLAGS, "-o", PATH(BUILD, CONCAT("example_", NOEXT(file))), PATH(SRC, EXAMPLE, file), LDFLAGS);
+            CMD(CC, CFLAGS, "-o", PATH(BUILD, CONCAT("example_", NOEXT(file))), PATH(SRC, EXAMPLE, file), LDFLAGS);
         }
     });
 }
@@ -171,7 +173,7 @@ int main(int argc, char **argv) {
         if(path_exists(PATH(BUILD, prog))) CMD(PATH(BUILD, prog));
         else if(path_exists(PATH(BUILD, ZIGBIN, prog))) CMD(PATH(BUILD, ZIGBIN, prog));
     } else if(argc == 2 && strcmp(argv[1], "test") == 0)
-        CMD("zig", "build", "test");
+        CMD(ZIGEXEC, "build", "test");
     else
         INFO("note that you can run examples with \"%s example <example name>\"", argv[0]);
 

@@ -52,7 +52,7 @@ pub const OffsetSubtable = packed struct {
 };
 
 // TODO: better way than wrapper functions to call nested methods with parent structure (`self`) as first arg?
-pub inline fn parseOffsetSubtable(self: *FontReader) @typeInfo(@TypeOf(OffsetSubtable.parse)).Fn.return_type.? {
+pub inline fn parseOffsetSubtable(self: *FontReader) !OffsetSubtable {
     return OffsetSubtable.parse(self);
 }
 
@@ -91,6 +91,14 @@ pub const GlyphDescription = packed struct {
     y_min: FWord,
     x_max: FWord,
     y_max: FWord,
+
+    pub inline fn clip_ord_x(self: *@This(), x: i16) f32 {
+        return @as(f32, @floatFromInt(x))/@as(f32, @floatFromInt(self.x_max));
+    }
+
+    pub inline fn clip_ord_y(self: *@This(), y: i16) f32 {
+        return @as(f32, @floatFromInt(y))/@as(f32, @floatFromInt(self.y_max));
+    }
 
     const SimpleDefinition = struct {
         end_contour_points: std.ArrayList(u16),

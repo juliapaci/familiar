@@ -4,9 +4,8 @@
 #include <stb/stb_image_write.h>
 #include <string.h>
 
-const size_t size_of_renderer = sizeof(Renderer);
-extern void do_something_with_the_entire_struct(Renderer *r);
-extern void use_some_lower_fields(Renderer *r);
+const size_t renderer_sizeof = sizeof(Renderer);
+const size_t renderer_alignof = alignof(Renderer);
 
 void render_init(Renderer *r) {
     *r = (Renderer){0};

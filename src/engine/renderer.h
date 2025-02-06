@@ -28,13 +28,13 @@ typedef enum {
 
 typedef struct {
     vec3s pos;
-    vec4s colour;
+    vec4s colour CGLM_ALIGN_IF(16);
     vec2s uv;
 } RenderVertexTriangle;
 
 typedef struct {
     vec3s pos;
-    vec4s colour;
+    vec4s colour CGLM_ALIGN_IF(16);
 
     float radius;
     float fade;     // [0, 1) -> blurryness
@@ -43,7 +43,7 @@ typedef struct {
 
 typedef struct {
     vec3s pos;
-    vec4s colour;
+    vec4s colour CGLM_ALIGN_IF(16);
 } RenderVertexLine;
 
 typedef struct {
@@ -108,9 +108,7 @@ typedef struct {
     // camera
     Camera camera;
 } Renderer;
-extern const size_t size_of_renderer; // needed for c interop with some languages
-inline void do_something_with_the_entire_struct(Renderer *r) { *r = (Renderer){0}; };
-inline void use_some_lower_fields(Renderer *r) { bool _ = r->camera.enabled; };
+extern const size_t renderer_sizeof, renderer_alignof;
 
 typedef struct {
     float x;

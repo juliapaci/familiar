@@ -9,8 +9,8 @@
 #define FAR_PLANE 100.0f
 
 typedef struct {
-    mat4s projection;
-    mat4s view;
+    mat4s projection CGLM_ALIGN_MAT;
+    mat4s view CGLM_ALIGN_MAT;
 } CameraUniforms;
 
 typedef struct {

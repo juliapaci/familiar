@@ -6,6 +6,8 @@ const familiar = @cImport({
     @cInclude("engine/renderer.h");
 });
 
+const spread = 10;
+
 pub fn main() !void {
     var fr = try text.init("assets/OpenSans-VariableFont_wdth,wght.ttf");
     defer fr.deinit();
@@ -15,9 +17,7 @@ pub fn main() !void {
     const window = familiar.init_window("Familiar text example (zig)") orelse return;
     defer familiar.glfwTerminate();
     familiar.glEnable(familiar.GL_LINE_SMOOTH);
-    std.debug.print("size:\n\tzig @sizeOf: {}\n\t@divExact(@bitSizeOf, 8): {}\n\tc sizeof: {}\n", .{@sizeOf(familiar.Renderer), @divExact(@bitSizeOf(familiar.Renderer), 8), familiar.size_of_renderer});
 
-    // TODO: for some reason the renderer pointer breaks when we pass it to a extern (c) function with a segfault because for some reason we cant access half the struct?? it only happens on certain computers and only sometimes (like sometimes it will run fine, others will crash on render_init, and others will crash half way through when we try to push a vertex). very weird behaviour
     const allocator = std.heap.page_allocator;
     const renderer = try allocator.create(familiar.Renderer);
     defer allocator.destroy(renderer);
@@ -28,10 +28,10 @@ pub fn main() !void {
 
     while(familiar.glfwWindowShouldClose(window) == 0) {
         familiar.glClearColor(0.1, 0.1, 0.1, 1.0);
-        familiar.glClear(familiar.GL_COLOR_BUFFER_BIT);
+        familiar.glClear(familiar.GL_COLOR_BUFFER_BIT | familiar.GL_DEPTH_BUFFER_BIT);
 
         familiar.render_frame_begin(renderer); {
-            familiar.render_switch_2d(renderer);
+            familiar.render_switch_3d(renderer);
 
             {
                 familiar.render_switch_object(renderer, familiar.OBJECT_CIRCLE);
@@ -40,15 +40,15 @@ pub fn main() !void {
                     glyphs[1].x_coords.items,
                     glyphs[1].y_coords.items
                 ) |x, y| familiar.render_draw_circle(renderer, .{
-                    .x = @floatFromInt(x),
-                    .y = @floatFromInt(y),
+                    .x = glyphs[0].clip_ord_x(x)*spread,
+                    .y = glyphs[0].clip_ord_y(y)*spread,
                     .radius = 0.1
                 });
 
                 for(glyphs[1].end_contour_points.items) |p| {
                     familiar.render_draw_circle(renderer, .{
-                        .x = @floatFromInt(glyphs[1].x_coords.items[p]),
-                        .y = @floatFromInt(glyphs[1].y_coords.items[p]),
+                        .x = glyphs[0].clip_ord_x(glyphs[1].x_coords.items[p])*spread,
+                        .y = glyphs[0].clip_ord_y(glyphs[1].y_coords.items[p])*spread,
                         .radius = 0.2
                     });
                 }
@@ -57,8 +57,8 @@ pub fn main() !void {
             {
                 familiar.render_switch_object(renderer, familiar.OBJECT_LINE_SIMPLE);
                 var last = [2]f32{
-                    @floatFromInt(glyphs[1].x_coords.items[0]),
-                    @floatFromInt(glyphs[1].y_coords.items[0]),
+                    glyphs[0].clip_ord_x(glyphs[1].x_coords.items[0])*spread,
+                    glyphs[0].clip_ord_y(glyphs[1].y_coords.items[0])*spread,
                 };
 
                 const contour_ends = glyphs[1].end_contour_points.items;
@@ -68,8 +68,8 @@ pub fn main() !void {
                         glyphs[1].y_coords.items[if (c == 0) 0 else contour_ends[c - 1] .. contour_ends[c] - 1]
                     ) |x, y| {
                         const current = [2]f32{
-                            @floatFromInt(x),
-                            @floatFromInt(y),
+                            glyphs[0].clip_ord_x(x)*spread,
+                            glyphs[0].clip_ord_y(y)*spread,
                         };
 
                         familiar.render_draw_line(renderer, .{
@@ -84,8 +84,8 @@ pub fn main() !void {
                     familiar.render_draw_line(renderer, .{
                         .start = .{.raw = [3]f32 { last[0], last[1], 0 }},
                         .end = .{.raw = [3]f32 {
-                            @floatFromInt(glyphs[1].x_coords.items[contour_ends[c]]),
-                            @floatFromInt(glyphs[1].x_coords.items[contour_ends[c]]),
+                            glyphs[0].clip_ord_x(glyphs[1].x_coords.items[contour_ends[c]])*spread,
+                            glyphs[0].clip_ord_y(glyphs[1].x_coords.items[contour_ends[c]])*spread,
                             0
                         }},
                         .thickness = 2.0
@@ -94,8 +94,8 @@ pub fn main() !void {
             }
         } familiar.render_frame_end(renderer);
 
-        familiar.process_general_input(window);
         familiar.process_camera_input(window, &renderer.camera);
+        familiar.process_general_input(window);
         familiar.glfwSwapBuffers(window);
         familiar.glfwPollEvents();
     }
