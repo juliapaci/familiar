@@ -1,0 +1,34 @@
+DEBUG: arg or yes
+
+OPTIMISATION:       -ggdb or -O2                    on DEBUG
+OPENGL_DEBUG_APP:   empty or -DOPENGL_DEBUG_APP=1   on DEBUG
+
+ROOT:           ..
+SRC:            ROOT + pathSep + src
+ENGINE:         ROOT + pathSep + engine
+EXAMPLE:        ROOT + pathSep + examples
+THIRD_PARTY:    ROOT + pathSep + external
+BUILD:          ROOT + pathSep + build
+ZIGLIB:         ROOT + pathSep + lib
+ZIGBIN:         ROOT + pathSep + bin
+ZIGEXEC:        ROOT + pathSep + zig
+CC:             env or gcc
+
+C:
+    Compiler_flags:
+        -Wall
+        -Wextra
+        -Wno-missing-braces
+        OPTIMISATION
+    Linker_flags:
+        -L + BUILD
+        -I + THIRD_PARTY
+        -I + THIRD_PARTY + pathSep + gl
+        -I + THIRD_PARTY + pathSep + cglm + pathSep + include
+        -I + SRC
+        -lglad  info static
+        -lglfw  info dynamic
+        -lGL    info dynamic
+        -lm     info dynamic
+        -lengine
+        -lstb   info static
