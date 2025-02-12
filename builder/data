@@ -1,18 +1,18 @@
-DEBUG: arg or yes
+DEBUG: arg or yes end
 
-OPTIMISATION:       -ggdb or -O2                    on DEBUG
-OPENGL_DEBUG_APP:   empty or -DOPENGL_DEBUG_APP=1   on DEBUG
+OPTIMISATION:       -ggdb or -O2                    on DEBUG end
+OPENGL_DEBUG_APP:   empty or -DOPENGL_DEBUG_APP=1   on DEBUG end
 
-ROOT:           ..
-SRC:            ROOT + pathSep + src
-ENGINE:         ROOT + pathSep + engine
-EXAMPLE:        ROOT + pathSep + examples
-THIRD_PARTY:    ROOT + pathSep + external
-BUILD:          ROOT + pathSep + build
-ZIGLIB:         ROOT + pathSep + lib
-ZIGBIN:         ROOT + pathSep + bin
-ZIGEXEC:        ROOT + pathSep + zig
-CC:             env or gcc
+ROOT:           ..                              end
+SRC:            ROOT + pathSep + src            end
+ENGINE:         ROOT + pathSep + engine         end
+EXAMPLE:        ROOT + pathSep + examples       end
+THIRD_PARTY:    ROOT + pathSep + external       end
+BUILD:          ROOT + pathSep + build          end
+ZIGLIB:         ROOT + pathSep + lib            end
+ZIGBIN:         ROOT + pathSep + bin            end
+ZIGEXEC:        ROOT + pathSep + zig            end
+CC:             env or gcc                      end
 
 C:
     Compiler_flags:
@@ -20,6 +20,8 @@ C:
         -Wextra
         -Wno-missing-braces
         OPTIMISATION
+    end
+
     Linker_flags:
         -L + BUILD
         -I + THIRD_PARTY
@@ -32,3 +34,5 @@ C:
         -lm     info dynamic
         -lengine
         -lstb   info static
+    end
+end

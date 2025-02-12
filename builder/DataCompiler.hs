@@ -4,12 +4,14 @@ module Main where
 
 import Control.Applicative
 import Data.Char
+import qualified Data.Map as Map
 
 data DataNode
     = DataBool Bool
     | DataString String
     | DataBuiltin
-    | DataList (String, [DataNode])
+    | DataList (Map.Map String [DataNode])
+    | DataConditional String
     deriving (Show, Eq)
 
 -- TODO: rewrite to give errors some context
@@ -48,10 +50,12 @@ spanParser :: (Char -> Bool) -> Parser String
 spanParser f =
     Parser $ \x ->
         let (token, rest) = span f x
-        in Just (rest, token)
+        in if null token
+            then Nothing
+            else Just (rest, token)
 
 stringLiteral :: Parser String
-stringLiteral = spanParser isLetter
+stringLiteral = spanParser $ \x -> not (isSpace x) && x /= ':'
 
 sepBy :: Parser a -> Parser b -> Parser [b]
 sepBy s e = (:) <$> e <*> many (s *> e) <|> pure []
@@ -69,14 +73,26 @@ dataString :: Parser DataNode
 dataString = DataString <$> stringLiteral
 
 dataList :: Parser DataNode
-dataList = (\name _ items -> DataList (name, items)) <$>
+dataList = (\name _ items _ -> DataList $ Map.fromList [(name, items)]) <$>
     stringLiteral
     <*> (charParser ':' *> ws)
     <*> sepBy (charParser '\n') dataNode
+    -- <*> (ws *> dataList <|> (\c -> DataString [c]) <$> charParser '\0')
+    <*> (ws *> stringParser "end")
 
+dataConditional :: Parser DataNode
+dataConditional = (\a _ b _ c -> f a b (DataBool (c == "yes"))) <$>
+    stringLiteral
+    <*> (ws *> stringParser "or" <* ws)
+    <*> stringLiteral
+    <*> (ws *> stringParser "on" <* ws)
+    <*> stringLiteral
+    where   f a _ (DataBool True)     = DataConditional a
+            f _ b (DataBool False)    = DataConditional b
+            f _ _ _                 = undefined
 
 dataNode :: Parser DataNode
-dataNode = dataBool <|> dataList <|> dataString
+dataNode = dataConditional <|> dataBool <|> dataList <|> dataString
 
 parseFile :: FilePath -> Parser a -> IO (Maybe a)
 parseFile path parser = do
