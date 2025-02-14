@@ -29,16 +29,50 @@
 #define ZIGBIN "bin"
 #define ZIGEXEC "zig"
 #define CC "gcc" // cant use shell `cc` because CMD will reset environment variables?
+#define CXXC "g++"
 
 #define CFLAGS "-Wall", "-Wextra", "-Wno-missing-braces", OPTIMISATION
 // TODO: not sure if "-I" is an linker flag? but its included in compile_commands.json so ill keep it here for now
 // TOOD: maybe use `pkg-config --static --libs glfw3` instead?
-#define LDFLAGS "-L"BUILD, "-I"THIRD_PARTY, CONCAT("-I", PATH(THIRD_PARTY, "gl")), CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")), "-I"SRC, "-lglad", "-lglfw", "-lGL", "-lm", "-lengine", "-lstb"
+#define LDFLAGS                                                                 \
+    "-L"BUILD,                                                                  \
+    "-I"THIRD_PARTY,                                                            \
+                                                                                \
+    CONCAT("-I", PATH(THIRD_PARTY, "gl")),                                      \
+    CONCAT("-I", PATH(THIRD_PARTY, "dawn", "include")),                         \
+    CONCAT("-I", PATH(THIRD_PARTY, "dawn", "out", "Debug", "gen", "include")),  \
+    CONCAT("-I", PATH(THIRD_PARTY, "cglm", "include")),                         \
+                                                                                \
+    "-I"SRC,                                                                    \
+    "-lglad",                                                                   \
+    "-lglfw",                                                                   \
+    "-lGL",                                                                     \
+    "-lwebgpu_dawn",                                                            \
+    "-ldawn_common",                                                            \
+    "-ldawn_native",                                                            \
+    "-lm",                                                                      \
+    "-lengine",                                                                 \
+    "-lstb"
+
 #define LDFLAGS_DELIM "\", \""
 
 void build_dep_glad(void) {
     CMD(CC, LDFLAGS, "-c", "-o", PATH(BUILD, "glad.o"), PATH(THIRD_PARTY, "gl", "glad", "glad.c"));
     CMD("ar", "rcs", PATH(BUILD, "libglad.a"), PATH(BUILD, "glad.o"));
+}
+
+void build_dep_dawn(void) {
+    // TODO: options for prebuilt wgpu
+    // because we cant change directory so we have to just run a shell script to get around it
+    if (!path_exists(PATH(THIRD_PARTY, "dawn", "out", "Debug")))
+        CMD("sh", "build_dep_dawn.sh");
+    else
+        INFO("dawn has been made already");
+
+    const Cstr loc = PATH(THIRD_PARTY, "dawn", "out", "Debug", "src", "dawn");
+    if(!path_exists(PATH(BUILD, "libdawn_common.a"))) CMD("cp", PATH(loc, "common", "libdawn_common.a"), BUILD);
+    if(!path_exists(PATH(BUILD,"libwebgpu_dawn.so"))) CMD("cp", PATH(loc, "native","libwebgpu_dawn.so"), BUILD);
+    if(!path_exists(PATH(BUILD, "libdawn_native.a"))) CMD("cp", PATH(loc, "native", "libdawn_native.a"), BUILD);
 }
 
 void build_dep_stb(void) {
@@ -109,16 +143,20 @@ void build_dep_engine() {
 
 void build_dependencies(void) {
     INFO("building glad"); build_dep_glad();
+    INFO("building dawn"); build_dep_dawn();
     INFO("building stb"); build_dep_stb();
     INFO("building engine"); build_dep_engine();
 }
 
 void build_examples(void) {
     FOREACH_FILE_IN_DIR(file, PATH(SRC, EXAMPLE), {
-        if(ENDS_WITH(file, ".c")) {
-            INFO("building example \"%s\"", file);
-            CMD(CC, CFLAGS, "-o", PATH(BUILD, CONCAT("example_", NOEXT(file))), PATH(SRC, EXAMPLE, file), LDFLAGS);
-        }
+        const char *cc;
+        if(ENDS_WITH(file, ".c"))       cc = CC;
+        else if(ENDS_WITH(file, ".cc")) cc = CXXC;
+        else                            continue;
+
+        INFO("building example \"%s\"", file);
+        CMD(cc, CFLAGS, "-o", PATH(BUILD, CONCAT("example_", NOEXT(file))), PATH(SRC, EXAMPLE, file), LDFLAGS);
     });
 }
 
@@ -158,6 +196,8 @@ void create_compile_commands(void) {
 
 int main(int argc, char **argv) {
     GO_REBUILD_URSELF(argc, argv);
+
+    // needed for stupid linker not searching a path i provided
 
     INFO("creating \"compile_commands.json\""); create_compile_commands();
     CMD("mkdir", "-p", BUILD);
