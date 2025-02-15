@@ -6,10 +6,96 @@ const familiar = @cImport({
     @cInclude("engine/renderer.h");
 });
 
-const spread = 10;
+fn draw_glyph(
+    renderer: *familiar.Renderer,
+    glyph: *struct {
+        text.GlyphDescription,
+        text.GlyphDescription.SimpleDefinition
+    },
+    offset: [2]f32
+) void {
+    const glyph_helper = struct {
+        const spread = 10;
+
+        glyph: @TypeOf(glyph),
+        offset: @TypeOf(offset),
+        fn new(g: @TypeOf(glyph), o: @TypeOf(offset)) @This() {
+            return .{
+                .glyph = g,
+                .offset = o
+            };
+        }
+
+        fn get_x_ord(self: *const @This(), y: i16) f32 {
+            return self.glyph[0].clip_ord_x(y)*spread + self.offset[0];
+        }
+
+        fn get_y_ord(self: *const @This(), y: i16) f32 {
+            return self.glyph[0].clip_ord_y(y)*spread + self.offset[1];
+        }
+
+        fn get_x_ord_index(self: *const @This(), index: usize) f32 {
+            return get_x_ord(self, self.glyph[1].x_coords.items[index]);
+        }
+
+        fn get_y_ord_index(self: *const @This(), index: usize) f32 {
+            return get_y_ord(self, self.glyph[1].y_coords.items[index]);
+        }
+    };
+    const gh = glyph_helper.new(glyph, offset);
+
+    { // draw the circle end points
+        familiar.render_switch_object(renderer, familiar.OBJECT_CIRCLE);
+
+        for(
+            glyph[1].x_coords.items,
+            glyph[1].y_coords.items
+        ) |x, y| familiar.render_draw_circle(renderer, .{
+            .x = gh.get_x_ord(x),
+            .y = gh.get_y_ord(y),
+            .radius = 0.1
+        });
+
+        for(glyph[1].end_contour_points.items) |p| {
+            familiar.render_draw_circle(renderer, .{
+                .x = gh.get_x_ord_index(p),
+                .y = gh.get_y_ord_index(p),
+                .radius = @floatCast(0.2*std.math.sin(familiar.glfwGetTime()))
+            });
+        }
+    }
+
+    {
+        familiar.render_switch_object(renderer, familiar.OBJECT_LINE_SIMPLE);
+
+        var s: usize = 0; // start
+        for(glyph[1].end_contour_points.items) |end| {
+            const e = end + 1; // end (+1 for wrap around)
+            for(s + 1..e + 1) |p| // (+1 for an inclusive range)
+                familiar.render_draw_line(renderer, .{
+                    .start = .{.raw = [3]f32{
+                        gh.get_x_ord_index(@max(@as(isize, @intCast(p)) - 1, 0)),
+                        gh.get_y_ord_index(@max(@as(isize, @intCast(p)) - 1, 0)),
+                        0
+                    }},
+                    .end = .{.raw = [3]f32{
+                        gh.get_x_ord_index(if (p == e) s else p),
+                        gh.get_y_ord_index(if (p == e) s else p),
+                        0
+                    }},
+                    .thickness = 1.0
+                });
+
+            s = e;
+        }
+    }
+}
 
 pub fn main() !void {
-    var fr = try text.init("assets/OpenSans-VariableFont_wdth,wght.ttf");
+    var args = try std.process.argsWithAllocator(std.heap.page_allocator);
+    defer args.deinit();
+    _ = args.skip();
+    var fr = try text.init(args.next() orelse unreachable);
     defer fr.deinit();
     var glyphs = try fr.parseFont();
     defer glyphs[1].deinit();
@@ -32,66 +118,7 @@ pub fn main() !void {
 
         familiar.render_frame_begin(renderer); {
             familiar.render_switch_3d(renderer);
-
-            {
-                familiar.render_switch_object(renderer, familiar.OBJECT_CIRCLE);
-
-                for(
-                    glyphs[1].x_coords.items,
-                    glyphs[1].y_coords.items
-                ) |x, y| familiar.render_draw_circle(renderer, .{
-                    .x = glyphs[0].clip_ord_x(x)*spread,
-                    .y = glyphs[0].clip_ord_y(y)*spread,
-                    .radius = 0.1
-                });
-
-                for(glyphs[1].end_contour_points.items) |p| {
-                    familiar.render_draw_circle(renderer, .{
-                        .x = glyphs[0].clip_ord_x(glyphs[1].x_coords.items[p])*spread,
-                        .y = glyphs[0].clip_ord_y(glyphs[1].y_coords.items[p])*spread,
-                        .radius = 0.2
-                    });
-                }
-            }
-
-            {
-                familiar.render_switch_object(renderer, familiar.OBJECT_LINE_SIMPLE);
-                var last = [2]f32{
-                    glyphs[0].clip_ord_x(glyphs[1].x_coords.items[0])*spread,
-                    glyphs[0].clip_ord_y(glyphs[1].y_coords.items[0])*spread,
-                };
-
-                const contour_ends = glyphs[1].end_contour_points.items;
-                for(0..contour_ends.len) |c| {
-                    for(
-                        glyphs[1].x_coords.items[if (c == 0) 0 else contour_ends[c - 1] .. contour_ends[c] - 1],
-                        glyphs[1].y_coords.items[if (c == 0) 0 else contour_ends[c - 1] .. contour_ends[c] - 1]
-                    ) |x, y| {
-                        const current = [2]f32{
-                            glyphs[0].clip_ord_x(x)*spread,
-                            glyphs[0].clip_ord_y(y)*spread,
-                        };
-
-                        familiar.render_draw_line(renderer, .{
-                            .start = .{.raw = [3]f32{ last[0], last[1], 0 }},
-                            .end = .{.raw = [3]f32{ current[0], current[1], 0 }},
-                            .thickness = 2.0
-                        });
-
-                        last = current;
-                    }
-
-                    familiar.render_draw_line(renderer, .{
-                        .start = .{.raw = [3]f32 { last[0], last[1], 0 }},
-                        .end = .{.raw = [3]f32 {
-                            glyphs[0].clip_ord_x(glyphs[1].x_coords.items[contour_ends[c]])*spread,
-                            glyphs[0].clip_ord_y(glyphs[1].x_coords.items[contour_ends[c]])*spread,
-                            0
-                        }},
-                        .thickness = 2.0
-                    });
-                }
-            }
+            draw_glyph(renderer, &glyphs, [2]f32{0.0, 0.0});
         } familiar.render_frame_end(renderer);
 
         familiar.process_camera_input(window, &renderer.camera);

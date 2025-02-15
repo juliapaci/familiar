@@ -100,7 +100,7 @@ pub const GlyphDescription = packed struct {
         return @as(f32, @floatFromInt(y))/@as(f32, @floatFromInt(self.y_max));
     }
 
-    const SimpleDefinition = struct {
+    pub const SimpleDefinition = struct {
         end_contour_points: std.ArrayList(u16),
         instruction_length: u16,
         instructions: std.ArrayList(u8),
@@ -196,7 +196,7 @@ pub const GlyphDescription = packed struct {
         }
     };
 
-    const CompoundDefinition = packed struct {
+    pub const CompoundDefinition = packed struct {
 
     };
 
@@ -224,8 +224,12 @@ pub fn parseFont(self: *FontReader) !struct{ GlyphDescription, GlyphDescription.
     const simple = try GlyphDescription.SimpleDefinition.parse(self, glyph);
     errdefer simple.deinit();
 
+    std.log.debug("end contour points:", .{});
+    for(simple.end_contour_points.items) |p|
+        std.log.debug("\t{d}", .{p});
+    std.log.debug("coords:", .{});
     for(simple.x_coords.items, simple.y_coords.items) |x, y|
-        std.log.debug("{d}, {d}", .{x, y});
+        std.log.debug("\t{d}, {d}", .{x, y});
 
     return .{ glyph, simple };
 }

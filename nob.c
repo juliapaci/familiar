@@ -132,7 +132,7 @@ void create_compile_commands(void) {
     for(size_t i = 0; i < ldflags_amount; i++)
         ldflags_size += strlen(ldflags_array[i]) + strlen(LDFLAGS_DELIM);
 
-    char *ldflags_args = malloc(ldflags_size);
+    char *ldflags_args = malloc(ldflags_size); if(ldflags_args == NULL) return;
     ldflags_args[0] = '\0';
     for(size_t i = 0; i < ldflags_amount; i++) {
         ldflags_args = strcat(ldflags_args, LDFLAGS_DELIM);
@@ -164,14 +164,26 @@ int main(int argc, char **argv) {
     INFO("building dependencies"); build_dependencies();
     INFO("building examples"); build_examples();
 
-    if(argc == 3 && strcmp(argv[1], "example") == 0) {
+    if(argc >= 3 && strcmp(argv[1], "example") == 0) {
         // TODO: hot reloading for examples
         // TODO: quick renderdoc shortcuts
+
+        const char *const args = "";
+        // size_t args_size = 0;
+        // for(int i = 3; i < argc; i++) args_size += strlen(argv[i]) + strlen(" ");
+        // char *args = malloc(args_size * sizeof(char)); if(args == NULL) return 1;
+        // args[0] = 0;
+        // for(int i = 3; i < argc; i++) {
+        //     args = strcat(args, argv[i]);
+        //     args = strcat(args, " ");
+        // }
+
         Cstr prog = CONCAT("example_", argv[2]);
-        // this doesnt work because the first one can panic with CMD
-        // CMD(PATH(BUILD, prog), "||", PATH(BUILD, ZIGBIN, prog));
-        if(path_exists(PATH(BUILD, prog))) CMD(PATH(BUILD, prog));
-        else if(path_exists(PATH(BUILD, ZIGBIN, prog))) CMD(PATH(BUILD, ZIGBIN, prog));
+        if(path_exists(PATH(BUILD, prog)))              prog = PATH(BUILD, prog);
+        else if(path_exists(PATH(BUILD, ZIGBIN, prog))) prog = PATH(BUILD, ZIGBIN, prog);
+        CMD(prog, " ", args);
+
+        free((void *)args);
     } else if(argc == 2 && strcmp(argv[1], "test") == 0)
         CMD(ZIGEXEC, "build", "test");
     else

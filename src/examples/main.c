@@ -28,7 +28,8 @@ void free_entity(Entity *entity) {
     render_texture_free(entity->texture);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    printf("%s\n", argv[1]);
     GLFWwindow *window = init_window("Familiar main example");
     if(window == NULL) return 1;
     glEnable(GL_LINE_SMOOTH);

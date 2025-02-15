@@ -6,7 +6,7 @@
 #include <cglm/struct.h>
 
 #define NEAR_PLANE 0.01f
-#define FAR_PLANE 100.0f
+#define FAR_PLANE 1000.0f
 
 typedef struct {
     mat4s projection CGLM_ALIGN_MAT;

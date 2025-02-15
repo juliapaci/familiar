@@ -116,7 +116,6 @@ void render_init(Renderer *r) {
         r->camera = camera_init();
         camera_update(&r->camera);
         render_camera_uniform_sync(r);
-        printf("c size: %ld\n", sizeof(Renderer));
     }
 }
 
@@ -416,6 +415,7 @@ void render_push_line_cs(Renderer *r, vec3s *segments, uint16_t segment_amount, 
 void render_push_line_s(Renderer *r, RenderVertexLine a, RenderVertexLine b, float thickness) {
     render_submit_batch(r, 0);
     if(thickness != r->line_s.thickness) {
+        // TODO: check if drivers/opengl version supports width > 1.0
         render_frame_flush(r);
         glLineWidth(thickness);
         r->line_s.thickness = thickness;
